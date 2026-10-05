@@ -291,8 +291,8 @@ export const VideoPlayer = ({ file, onClose }: VideoPlayerProps) => {
       ref={containerRef}
       onMouseMove={handleMouseMove}
       className={cn(
-        "relative bg-black group flex items-center justify-center overflow-hidden transition-all w-full h-full rounded-[2.5rem] shadow-2xl",
-        isFullscreen ? "fixed inset-0 z-[200] rounded-none" : "border-4 border-surface"
+        "relative w-full aspect-video max-h-[75vh] bg-black group flex items-center justify-center overflow-hidden transition-all rounded-[2.5rem] shadow-2xl",
+        isFullscreen ? "fixed inset-0 z-[200] rounded-none max-h-none h-screen w-screen" : "border-4 border-surface"
       )}
     >
       <video
@@ -340,14 +340,14 @@ export const VideoPlayer = ({ file, onClose }: VideoPlayerProps) => {
             className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/90 via-transparent to-black/20 z-30 p-6"
           >
             {/* Middle: Big Play Button */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
                <motion.button
                  whileHover={{ scale: 1.1 }}
                  whileTap={{ scale: 0.9 }}
                  onClick={(e) => { e.stopPropagation(); togglePlay(); }}
-                 className="w-24 h-24 bg-primary text-on-primary rounded-full flex items-center justify-center shadow-2xl shadow-primary/30 pointer-events-auto"
+                 className="w-20 h-20 bg-primary text-on-primary rounded-full flex items-center justify-center shadow-2xl shadow-primary/30 pointer-events-auto cursor-pointer"
                >
-                  {isPlaying ? <Pause size={44} fill="currentColor" /> : <Play size={44} fill="currentColor" className="ml-2" />}
+                  {isPlaying ? <Pause size={36} fill="currentColor" /> : <Play size={36} fill="currentColor" className="ml-1" />}
                </motion.button>
             </div>
 
