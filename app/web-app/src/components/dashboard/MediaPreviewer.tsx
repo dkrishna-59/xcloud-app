@@ -15,11 +15,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Copy,
+  Check
 } from 'lucide-react';
 import { FileEntry } from '@/lib/upload-manager';
 import { formatFileSize, cn } from '@/lib/utils';
 import { VideoPlayer } from './VideoPlayer';
+import { AudioPlayer } from './AudioPlayer';
 
 interface MediaPreviewerProps {
   file: FileEntry | null;
@@ -32,6 +35,7 @@ export const MediaPreviewer = ({ file, isOpen, onClose }: MediaPreviewerProps) =
   const [rotation, setRotation] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [textContent, setTextContent] = useState<string | null>(null);
+  const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
     if (isOpen && file) {
@@ -39,6 +43,7 @@ export const MediaPreviewer = ({ file, isOpen, onClose }: MediaPreviewerProps) =
       setRotation(0);
       setIsLoading(true);
       setTextContent(null);
+      setIsCopied(false);
 
       if (file.fileType === 'Text' || file.fileType === 'Code') {
         fetch(file.downloadUrl)
@@ -79,6 +84,14 @@ export const MediaPreviewer = ({ file, isOpen, onClose }: MediaPreviewerProps) =
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const copyTextContent = () => {
+    if (textContent) {
+      navigator.clipboard.writeText(textContent);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    }
   };
 
   return (
@@ -128,6 +141,16 @@ export const MediaPreviewer = ({ file, isOpen, onClose }: MediaPreviewerProps) =
                     <RotateCw size={20} />
                   </button>
                 </>
+              )}
+
+              {isText && textContent && (
+                <button
+                  onClick={copyTextContent}
+                  className="flex items-center gap-2 px-5 py-3 bg-surface-variant text-on-surface-variant font-bold rounded-2xl hover:bg-surface-variant/80 transition-all text-xs"
+                >
+                  {isCopied ? <Check size={16} className="text-primary" /> : <Copy size={16} />}
+                  <span>{isCopied ? 'Copied' : 'Copy Text'}</span>
+                </button>
               )}
 
               <div className="h-8 w-px bg-outline/10 mx-2" />
@@ -195,28 +218,7 @@ export const MediaPreviewer = ({ file, isOpen, onClose }: MediaPreviewerProps) =
                 ) : null}
 
                 {isAudio && (
-                   <div className="bg-surface-variant/20 backdrop-blur-xl border border-outline/10 p-16 rounded-[4rem] text-center space-y-8 shadow-2xl">
-                      <div className="w-40 h-40 bg-primary-container text-primary rounded-[3rem] flex items-center justify-center mx-auto shadow-lg relative">
-                         <div className="absolute inset-0 bg-primary animate-ping rounded-[3rem] opacity-10" />
-                         <motion.div
-                           animate={{ scale: [1, 1.1, 1] }}
-                           transition={{ duration: 2, repeat: Infinity }}
-                         >
-                            <Info size={80} />
-                         </motion.div>
-                      </div>
-                      <div className="space-y-2">
-                        <h3 className="text-2xl font-black text-on-surface tracking-tight">{file.fileName}</h3>
-                        <p className="text-on-surface-variant font-bold uppercase tracking-[0.2em] text-xs">Decrypted Stream • Secure Audio</p>
-                      </div>
-                      <audio
-                        src={file.downloadUrl}
-                        controls
-                        autoPlay
-                        onLoadedData={() => setIsLoading(false)}
-                        className="w-80 h-14"
-                      />
-                   </div>
+                  <AudioPlayer file={file} onClose={onClose} />
                 )}
 
                 {isPDF && (
@@ -230,7 +232,7 @@ export const MediaPreviewer = ({ file, isOpen, onClose }: MediaPreviewerProps) =
                 {isText && (
                   <div className="w-[80vw] max-w-4xl h-[70vh] bg-surface rounded-[2rem] border border-outline/10 shadow-2xl overflow-hidden flex flex-col">
                      <div className="p-4 bg-surface-variant/30 border-b border-outline/5 flex items-center justify-between">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-outline">Raw Content View</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-outline">Raw Content View ({textContent ? textContent.split('\n').length : 0} lines)</span>
                      </div>
                      <pre className="flex-1 p-8 overflow-auto text-sm text-on-surface font-mono leading-relaxed custom-scrollbar">
                         {textContent || 'Loading content...'}
