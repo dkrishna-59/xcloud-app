@@ -1,7 +1,7 @@
 import { collection, addDoc, serverTimestamp, query, orderBy, limit, onSnapshot, where, doc, updateDoc } from "firebase/firestore";
 import { db } from "./firebase";
 
-export type ActivityType = 'UPLOAD' | 'DELETE' | 'RESTORE' | 'RENAME' | 'SHARE' | 'UPGRADE' | 'LOGIN' | 'REVOKE';
+export type ActivityType = 'UPLOAD' | 'DELETE' | 'RESTORE' | 'RENAME' | 'SHARE' | 'UPGRADE' | 'LOGIN' | 'REVOKE' | 'PURGE';
 
 export interface Activity {
   id?: string;

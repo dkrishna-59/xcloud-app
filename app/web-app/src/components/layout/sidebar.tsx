@@ -148,26 +148,7 @@ export const Sidebar = () => {
         })}
       </nav>
 
-      {!isCollapsed && (
-        <div className="p-6">
-          <div className="bg-secondary-container/30 rounded-[2rem] p-5 space-y-4">
-             <div className="flex justify-between items-center">
-                <span className="text-xs font-bold text-on-secondary-container/70 uppercase tracking-widest">Storage</span>
-                <span className="text-xs font-black text-on-secondary-container">{percentage}%</span>
-             </div>
-             <div className="w-full bg-on-secondary-container/10 rounded-full h-2 overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${percentage}%` }}
-                  className="bg-primary h-full rounded-full"
-                />
-             </div>
-             <p className="text-[10px] text-on-secondary-container/60 font-medium leading-tight">
-               {formatFileSize(used)} of {formatFileSize(available)} used. Your data is encrypted with AES-256.
-             </p>
-          </div>
-        </div>
-      )}
+
     </aside>
   );
 };

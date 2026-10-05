@@ -12,3 +12,13 @@ plugins {
     alias(libs.plugins.googleServices) apply false
     alias(libs.plugins.firebaseCrashlytics) apply false
 }
+
+// Ensure Kotlin JS package-lock.json exists to prevent LockStoreTask configuration validation failure
+val jsDir = file("build/js")
+if (!jsDir.exists()) {
+    jsDir.mkdirs()
+}
+val packageLock = file("build/js/package-lock.json")
+if (!packageLock.exists()) {
+    packageLock.writeText("{}")
+}

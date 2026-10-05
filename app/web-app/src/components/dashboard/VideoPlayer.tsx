@@ -23,7 +23,9 @@ import {
   Plus,
   Minus,
   Zap,
-  Subtitles
+  Subtitles,
+  Keyboard,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileEntry } from '@/lib/upload-manager';
@@ -51,6 +53,7 @@ export const VideoPlayer = ({ file, onClose }: VideoPlayerProps) => {
   const [showControls, setShowControls] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
   const [aspectRatio, setAspectRatio] = useState<'original' | '16/9' | '4/3'>('original');
   const [isNormalized, setIsNormalized] = useState(false);
   const [showCaptions, setShowCaptions] = useState(false);
@@ -235,6 +238,12 @@ export const VideoPlayer = ({ file, onClose }: VideoPlayerProps) => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement) return;
 
+      if (e.key === '?' || (e.shiftKey && e.code === 'Slash')) {
+        e.preventDefault();
+        setShowShortcutsModal(prev => !prev);
+        return;
+      }
+
       switch (e.code) {
         case 'Space':
         case 'KeyK':
@@ -260,7 +269,7 @@ export const VideoPlayer = ({ file, onClose }: VideoPlayerProps) => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [togglePlay, isMuted]);
+  }, [togglePlay, isMuted, skipAmount]);
 
   const formatTime = (time: number) => {
     const h = Math.floor(time / 3600);
@@ -430,6 +439,13 @@ export const VideoPlayer = ({ file, onClose }: VideoPlayerProps) => {
                            </button>
                         )}
                         <button
+                          onClick={(e) => { e.stopPropagation(); setShowShortcutsModal(true); }}
+                          className="p-3 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+                          title="Keyboard Shortcuts (?)"
+                        >
+                           <Keyboard size={20} />
+                        </button>
+                        <button
                           onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings); }}
                           className={cn("p-3 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all", showSettings && "bg-primary/20 text-primary")}
                           title="Playback Settings"
@@ -458,7 +474,7 @@ export const VideoPlayer = ({ file, onClose }: VideoPlayerProps) => {
                        <div>
                           <p className="text-[10px] font-black text-outline uppercase tracking-widest mb-3 px-1">Playback Speed</p>
                           <div className="grid grid-cols-4 gap-2">
-                             {[0.5, 1, 1.5, 2].map(rate => (
+                             {[0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map(rate => (
                                <button
                                  key={rate}
                                  onClick={(e) => {
@@ -597,6 +613,67 @@ export const VideoPlayer = ({ file, onClose }: VideoPlayerProps) => {
                  </motion.div>
                )}
             </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Keyboard Shortcuts Modal */}
+      <AnimatePresence>
+        {showShortcutsModal && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-6"
+            onClick={(e) => { e.stopPropagation(); setShowShortcutsModal(false); }}
+          >
+            <div
+              className="bg-surface border border-outline/10 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                    <Keyboard size={22} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-on-surface">Keyboard Shortcuts</h3>
+                    <p className="text-xs text-on-surface-variant">Control video playback effortlessly</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowShortcutsModal(false)}
+                  className="p-2 text-on-surface-variant hover:bg-surface-variant rounded-full transition-all"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-3 text-sm">
+                {[
+                  { key: 'Space / K', desc: 'Play / Pause' },
+                  { key: '← / J', desc: `Rewind ${skipAmount} seconds` },
+                  { key: '→ / L', desc: `Fast forward ${skipAmount} seconds` },
+                  { key: 'M', desc: 'Mute / Unmute' },
+                  { key: 'F', desc: 'Toggle Fullscreen' },
+                  { key: '?', desc: 'Show / Hide Shortcuts' },
+                ].map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between py-2 border-b border-outline/5 last:border-0">
+                    <span className="text-on-surface-variant">{item.desc}</span>
+                    <kbd className="px-2.5 py-1 bg-surface-variant text-on-surface-variant font-mono text-xs rounded-lg border border-outline/10 shadow-sm font-bold">
+                      {item.key}
+                    </kbd>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setShowShortcutsModal(false)}
+                className="w-full py-3 bg-primary text-on-primary font-bold rounded-2xl shadow-lg shadow-primary/20 hover:opacity-90 transition-all"
+              >
+                Got it
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

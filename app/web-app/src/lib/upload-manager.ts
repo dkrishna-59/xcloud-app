@@ -24,6 +24,7 @@ export interface FileEntry {
   lastOpenedTimestamp?: any;
   isLocked?: boolean;
   playbackPosition?: number; // Last viewed position in seconds
+  tags?: string[];
 }
 
 export type UploadProgressCallback = (progress: number) => void;

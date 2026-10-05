@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Bell, HelpCircle, LogOut, Settings, Trash2, User, Moon, Sun, CheckCircle2, Clock, Globe } from 'lucide-react';
+import { Search, Bell, HelpCircle, LogOut, Settings, Trash2, User, Moon, Sun, CheckCircle2, Clock, Globe, Monitor, Check } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useSearch } from '@/context/search-context';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
@@ -18,8 +18,8 @@ export const Header = () => {
   const { searchQuery, setSearchQuery } = useSearch();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
+  const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [activities, setActivities] = useState<Activity[]>([]);
   const router = useRouter();
 
@@ -29,9 +29,7 @@ export const Header = () => {
     if (!user) return;
 
     const q = query(
-      collection(db, 'users', user.uid, 'activities'),
-      orderBy('timestamp', 'desc'),
-      limit(10)
+      collection(db, 'users', user.uid, 'activities')
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -39,7 +37,14 @@ export const Header = () => {
         id: doc.id,
         ...doc.data()
       })) as Activity[];
-      setActivities(items);
+
+      items.sort((a: any, b: any) => {
+        const tA = a.timestamp?.toMillis ? a.timestamp.toMillis() : (a.timestamp?.seconds ? a.timestamp.seconds * 1000 : Date.now());
+        const tB = b.timestamp?.toMillis ? b.timestamp.toMillis() : (b.timestamp?.seconds ? b.timestamp.seconds * 1000 : Date.now());
+        return tB - tA;
+      });
+
+      setActivities(items.slice(0, 10));
     });
 
     return () => unsubscribe();
@@ -75,46 +80,7 @@ export const Header = () => {
       </div>
 
       <div className="flex items-center gap-2 ml-8 shrink-0">
-        <div className="relative">
-          <button
-            onClick={() => setShowThemeMenu(!showThemeMenu)}
-            title="Theme Settings"
-            className="p-3 text-on-surface-variant hover:bg-on-surface-variant/10 rounded-full transition-all active:scale-90 min-w-[40px] min-h-[40px]"
-          >
-            {theme === 'dark' ? <Moon size={24} /> : theme === 'light' ? <Sun size={24} /> : <Globe size={24} />}
-          </button>
-
-          <AnimatePresence>
-            {showThemeMenu && (
-              <>
-                <div className="fixed inset-0 z-20" onClick={() => setShowThemeMenu(false)}></div>
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute right-0 top-full mt-3 w-44 bg-surface shadow-2xl border border-outline/10 rounded-3xl p-2 z-50"
-                >
-                  {['light', 'dark', 'system'].map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => { setTheme(t as any); setShowThemeMenu(false); }}
-                      className={cn(
-                        "w-full flex items-center gap-3 px-4 py-3 text-sm rounded-2xl transition-all capitalize font-medium",
-                        theme === t ? "bg-primary-container text-on-primary-container" : "text-on-surface-variant hover:bg-surface-variant/50"
-                      )}
-                    >
-                      {t === 'light' && <Sun size={18} />}
-                      {t === 'dark' && <Moon size={18} />}
-                      {t === 'system' && <Globe size={18} />}
-                      {t}
-                    </button>
-                  ))}
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
-        </div>
-
+        {/* Notification Bell */}
         <div className="relative">
           <button
             onClick={handleNotificationClick}
@@ -183,6 +149,69 @@ export const Header = () => {
           </AnimatePresence>
         </div>
 
+        {/* Theme Selector Dropdown (Light, Dark, System) */}
+        <div className="relative">
+          <button
+            onClick={() => setShowThemeMenu(!showThemeMenu)}
+            title="Appearance Settings"
+            className="p-3 text-on-surface-variant hover:bg-on-surface-variant/10 rounded-full transition-all active:scale-90 min-w-[40px] min-h-[40px] flex items-center justify-center"
+          >
+            {theme === 'system' ? (
+              <Monitor size={22} />
+            ) : resolvedTheme === 'dark' ? (
+              <Sun size={22} className="text-amber-400" />
+            ) : (
+              <Moon size={22} className="text-primary" />
+            )}
+          </button>
+
+          <AnimatePresence>
+            {showThemeMenu && (
+              <>
+                <div className="fixed inset-0 z-20" onClick={() => setShowThemeMenu(false)}></div>
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="absolute right-0 top-full mt-3 w-48 bg-surface shadow-2xl border border-outline/15 rounded-3xl p-2 z-50 overflow-hidden"
+                >
+                  <div className="px-3 py-2 border-b border-outline/5 mb-1">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant opacity-60">Appearance</p>
+                  </div>
+                  <div className="space-y-1">
+                    {[
+                      { id: 'light', label: 'Light', icon: Sun },
+                      { id: 'dark', label: 'Dark', icon: Moon },
+                      { id: 'system', label: 'System', icon: Monitor },
+                    ].map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          setTheme(item.id as 'light' | 'dark' | 'system');
+                          setShowThemeMenu(false);
+                        }}
+                        className={cn(
+                          "w-full flex items-center justify-between px-4 py-2.5 text-xs font-bold rounded-2xl transition-all",
+                          theme === item.id
+                            ? "bg-primary text-on-primary shadow-md"
+                            : "text-on-surface hover:bg-surface-variant/50"
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <item.icon size={16} />
+                          <span>{item.label}</span>
+                        </div>
+                        {theme === item.id && <Check size={14} />}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* User Profile Avatar */}
         <div className="relative">
           <button
             onClick={() => setShowProfileMenu(!showProfileMenu)}
@@ -195,7 +224,7 @@ export const Header = () => {
                 width={40}
                 height={40}
                 className="w-10 h-10 rounded-full object-cover border-2 border-surface shadow-sm"
-                unoptimized // Use unoptimized for external provider pics to avoid complex resizing on our edge
+                unoptimized
               />
             ) : (
               <div className="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-black text-lg">

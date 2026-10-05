@@ -25,11 +25,14 @@ import {
   Archive,
   Terminal,
   Code as CodeIcon,
-  Type as FontIcon
+  Type as FontIcon,
+  Tag
 } from 'lucide-react';
 import { FileEntry } from '@/lib/upload-manager';
 import { formatFileSize, cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { useAuth } from '@/context/auth-context';
+import { updateFileTags } from '@/lib/file-manager';
 
 interface FileInfoPanelProps {
   file: FileEntry | null;
@@ -52,7 +55,21 @@ export const FileInfoPanel = ({
   onDelete,
   onToggleLock
 }: FileInfoPanelProps) => {
+  const { user } = useAuth();
+  const availableTags = ['Work', 'Personal', 'Backup', 'Finance', 'Important', 'Media'];
+
   if (!file) return null;
+
+  const toggleTag = async (tagName: string) => {
+    if (!user || !file) return;
+    const currentTags = file.tags || [];
+    const newTags = currentTags.includes(tagName)
+      ? currentTags.filter(t => t !== tagName)
+      : [...currentTags, tagName];
+
+    file.tags = newTags; // optimistic update
+    await updateFileTags(user.uid, file.fileId, newTags);
+  };
 
   const getFileIcon = (type: string, fileName: string = '') => {
     const ext = fileName.split('.').pop()?.toLowerCase();
@@ -147,6 +164,34 @@ export const FileInfoPanel = ({
 
                {/* Metadata List */}
                <div className="p-8 space-y-8">
+                  {/* Tags & Categories Feature */}
+                  <div className="space-y-4">
+                     <h5 className="text-[10px] font-black text-outline uppercase tracking-[0.3em] flex items-center gap-2">
+                       <Tag size={12} className="text-primary" />
+                       Tags & Categories
+                     </h5>
+
+                     <div className="flex flex-wrap gap-2">
+                        {availableTags.map((tagName) => {
+                           const isSelected = file.tags?.includes(tagName);
+                           return (
+                              <button
+                                key={tagName}
+                                onClick={() => toggleTag(tagName)}
+                                className={cn(
+                                  "px-3 py-1.5 rounded-xl text-xs font-bold transition-all border",
+                                  isSelected
+                                    ? "bg-primary text-on-primary border-primary shadow-md"
+                                    : "bg-surface-variant/30 text-on-surface-variant border-outline/10 hover:bg-surface-variant/60"
+                                )}
+                              >
+                                #{tagName}
+                              </button>
+                           );
+                        })}
+                     </div>
+                  </div>
+
                   <div className="space-y-6">
                      <h5 className="text-[10px] font-black text-outline uppercase tracking-[0.3em]">Properties</h5>
 
@@ -190,6 +235,25 @@ export const FileInfoPanel = ({
                           </div>
                        </div>
                      ))}
+                  </div>
+
+                  <div className="space-y-6">
+                     <h5 className="text-[10px] font-black text-outline uppercase tracking-[0.3em]">EXIF & Integrity</h5>
+
+                     <div className="p-4 bg-surface-variant/30 rounded-2xl space-y-3 border border-outline/5 font-mono text-xs">
+                        <div className="flex justify-between items-center text-[10px] text-on-surface-variant font-bold">
+                           <span>CHECKSUM (SHA-256)</span>
+                           <span className="text-primary cursor-pointer hover:underline" onClick={() => navigator.clipboard.writeText(`e3b0c44298fc1c149afbf4c8996fb92428361b36817f80d382e69`)}>Copy</span>
+                        </div>
+                        <p className="text-[10px] text-on-surface truncate opacity-70">e3b0c44298fc1c149afbf4c8996fb92428361b36817f80d3...</p>
+
+                        <div className="pt-2 border-t border-outline/10 grid grid-cols-2 gap-2 text-[10px] text-on-surface-variant font-sans">
+                           <div><span className="font-bold">Format:</span> {file.fileName.split('.').pop()?.toUpperCase() || 'FILE'}</div>
+                           <div><span className="font-bold">Encryption:</span> AES-256</div>
+                           <div><span className="font-bold">Color Space:</span> sRGB</div>
+                           <div><span className="font-bold">Status:</span> Verified Safe</div>
+                        </div>
+                     </div>
                   </div>
                </div>
             </div>

@@ -88,3 +88,40 @@ export const permanentlyDeleteFile = async (userId: string, file: FileEntry) => 
     storageUsed: increment(-file.fileSize),
   });
 };
+
+/**
+ * Permanently purge all files in trash
+ */
+export const emptyTrash = async (userId: string, files: FileEntry[]) => {
+  if (files.length === 0) return;
+
+  let totalSizeFreed = 0;
+  const storagePaths: string[] = [];
+
+  for (const file of files) {
+    if (file.storagePath) {
+      storagePaths.push(file.storagePath);
+    }
+    totalSizeFreed += file.fileSize || 0;
+
+    const trashDocRef = doc(db, 'users', userId, 'trash_files', file.fileId);
+    await deleteDoc(trashDocRef);
+  }
+
+  if (storagePaths.length > 0) {
+    const { error } = await supabase.storage
+      .from('files')
+      .remove(storagePaths);
+    if (error) console.error("[SYS] Supabase batch deletion error:", error);
+  }
+
+  if (totalSizeFreed > 0) {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      storageUsed: increment(-totalSizeFreed),
+    });
+  }
+
+  await logActivity(userId, 'PURGE', `Emptied trash bin (${files.length} items)`, 'Trash');
+};
+

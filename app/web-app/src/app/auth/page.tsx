@@ -24,6 +24,10 @@ export default function AuthPage() {
 
   const handleSocialAuth = async (provider: any) => {
     if (isLoading) return; // Prevent double-clicks which cancel popups
+    if (!auth || !db) {
+      setError("Firebase authentication is not configured. Please provide valid Firebase environment variables.");
+      return;
+    }
 
     setIsLoading(true);
     setError(null);
@@ -80,6 +84,11 @@ export default function AuthPage() {
 
   const handleEmailAuth = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!auth) {
+      setError("Firebase authentication is not configured. Please provide valid Firebase environment variables.");
+      return;
+    }
+
     const formData = new FormData(e.currentTarget);
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
@@ -102,6 +111,11 @@ export default function AuthPage() {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!auth) {
+      setError("Firebase authentication is not configured. Please provide valid Firebase environment variables.");
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     try {

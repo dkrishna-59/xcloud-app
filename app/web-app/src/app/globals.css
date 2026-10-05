@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+html {
+  zoom: 0.8;
+}
+
 :root {
   /* M3 Light Palette */
   --md-sys-color-primary: #005ac1;

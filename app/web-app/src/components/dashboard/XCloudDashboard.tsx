@@ -98,6 +98,10 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
   // Shared View Sub-Filter
   const [sharedSubFilter, setSharedSubFilter] = useState<'with_me' | 'by_me' | 'invitations'>('with_me');
 
+  // File Type & Sort Filters
+  const [fileTypeFilter, setFileTypeFilter] = useState<'all' | 'Folder' | 'Image' | 'Document' | 'Video' | 'Audio'>('all');
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name-asc' | 'name-desc' | 'size-desc'>('newest');
+
   useEffect(() => {
     if (!user) return;
 
@@ -208,20 +212,39 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
       docs = docs.filter(f => f.fileName.toLowerCase().includes(searchQuery.toLowerCase()));
     }
 
-    return docs.sort((a, b) => {
-      if (filter === 'all') {
-        const timeA = a.lastOpenedTimestamp?.seconds || a.uploadTimestamp?.seconds || 0;
-        const timeB = b.lastOpenedTimestamp?.seconds || b.uploadTimestamp?.seconds || 0;
-        return timeB - timeA;
+    if (fileTypeFilter !== 'all') {
+      if (fileTypeFilter === 'Folder') {
+        docs = docs.filter(f => f.fileType === 'Folder');
+      } else if (fileTypeFilter === 'Image') {
+        docs = docs.filter(f => f.fileType === 'Image' || f.fileName.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i));
+      } else if (fileTypeFilter === 'Document') {
+        docs = docs.filter(f => f.fileType === 'Document' || f.fileType === 'PDF' || f.fileName.match(/\.(pdf|doc|docx|txt|xls|xlsx|ppt|pptx)$/i));
+      } else if (fileTypeFilter === 'Video') {
+        docs = docs.filter(f => f.fileType === 'Video' || f.fileName.match(/\.(mp4|webm|mov|mkv)$/i));
+      } else if (fileTypeFilter === 'Audio') {
+        docs = docs.filter(f => f.fileType === 'Audio' || f.fileName.match(/\.(mp3|wav|ogg|m4a)$/i));
       }
+    }
 
-      if (a.fileType === 'Folder' && b.fileType !== 'Folder') return -1;
-      if (a.fileType !== 'Folder' && b.fileType === 'Folder') return 1;
-      const timeA = a.uploadTimestamp?.seconds || 0;
-      const timeB = b.uploadTimestamp?.seconds || 0;
-      return timeB - timeA;
+    return docs.sort((a, b) => {
+      if (sortBy === 'newest') {
+        const timeA = a.uploadTimestamp?.seconds || 0;
+        const timeB = b.uploadTimestamp?.seconds || 0;
+        return timeB - timeA;
+      } else if (sortBy === 'oldest') {
+        const timeA = a.uploadTimestamp?.seconds || 0;
+        const timeB = b.uploadTimestamp?.seconds || 0;
+        return timeA - timeB;
+      } else if (sortBy === 'name-asc') {
+        return a.fileName.localeCompare(b.fileName);
+      } else if (sortBy === 'name-desc') {
+        return b.fileName.localeCompare(a.fileName);
+      } else if (sortBy === 'size-desc') {
+        return (b.fileSize || 0) - (a.fileSize || 0);
+      }
+      return 0;
     });
-  }, [files, searchQuery, filter]);
+  }, [files, searchQuery, filter, fileTypeFilter, sortBy]);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (!user || !userMetadata) return;
@@ -403,6 +426,17 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
     }
   }, [user, selectedFileIds, showToast]);
 
+  const handleBatchDownload = useCallback(() => {
+    if (selectedFileIds.length === 0) return;
+    selectedFileIds.forEach(id => {
+      const file = files.find(f => f.fileId === id);
+      if (file && file.downloadUrl) {
+        window.open(file.downloadUrl, '_blank');
+      }
+    });
+    showToast(`Downloading ${selectedFileIds.length} item(s)`, 'success');
+  }, [selectedFileIds, files, showToast]);
+
   const handleFileClick = useCallback((e: React.MouseEvent, file: FileEntry) => {
     if (e.shiftKey || selectedFileIds.length > 0) {
       toggleSelection(e, file.fileId);
@@ -518,6 +552,7 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
         onBatchStar={handleBatchStar}
         onBatchMove={() => setIsMoveModalOpen(true)}
         onBatchDelete={handleBatchDelete}
+        onBatchDownload={handleBatchDownload}
       />
 
       <div className="p-10 max-w-7xl mx-auto min-h-full flex flex-col gap-10">
@@ -648,6 +683,41 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
 
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-1">
           <div className="space-y-8 lg:col-span-1">
+
+            {/* Filter & Sort Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-4 bg-surface-variant/20 p-4 rounded-2xl border border-outline/10">
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
+                {(['all', 'Folder', 'Image', 'Document', 'Video', 'Audio'] as const).map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => setFileTypeFilter(type)}
+                    className={cn(
+                      "px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap",
+                      fileTypeFilter === type
+                        ? "bg-primary text-on-primary shadow-md"
+                        : "text-on-surface-variant hover:bg-surface-variant/50"
+                    )}
+                  >
+                    {type === 'all' ? 'All Types' : type}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-bold text-on-surface-variant opacity-70">Sort by:</span>
+                <select
+                  value={sortBy}
+                  onChange={(e: any) => setSortBy(e.target.value)}
+                  className="bg-surface text-on-surface text-xs font-bold px-3 py-2 rounded-xl border border-outline/20 outline-none focus:border-primary transition-all"
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="name-asc">Name (A-Z)</option>
+                  <option value="name-desc">Name (Z-A)</option>
+                  <option value="size-desc">Largest Size</option>
+                </select>
+              </div>
+            </div>
 
             <AnimatePresence>
               {Object.keys(uploadingFiles).length > 0 && (

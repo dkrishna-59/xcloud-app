@@ -17,7 +17,7 @@ import {
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { FileEntry } from '@/lib/upload-manager';
-import { restoreFromTrash, permanentlyDeleteFile } from '@/lib/trash-manager';
+import { restoreFromTrash, permanentlyDeleteFile, emptyTrash } from '@/lib/trash-manager';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -27,6 +27,7 @@ export default function Trash() {
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [isPurgingAll, setIsPurgingAll] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -79,6 +80,24 @@ export default function Trash() {
     }
   };
 
+  const handleEmptyTrash = async () => {
+    if (!user || files.length === 0) return;
+    if (!confirm(`Are you sure you want to permanently delete all ${files.length} items in the trash? This action cannot be undone and will free up your storage.`)) return;
+
+    setIsPurgingAll(true);
+    const toastId = showToast('Emptying trash bin...', 'loading');
+    try {
+      await emptyTrash(user.uid, files);
+      hideToast(toastId);
+      showToast('Trash bin emptied successfully', 'success');
+    } catch (error: any) {
+      hideToast(toastId);
+      showToast(error.message, 'error');
+    } finally {
+      setIsPurgingAll(false);
+    }
+  };
+
   const getFileIcon = (type: string) => {
     const className = "text-primary";
     switch (type) {
@@ -105,9 +124,19 @@ export default function Trash() {
           </p>
         </div>
         {files.length > 0 && (
-          <div className="flex items-center gap-3 text-error bg-error-container/20 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-[0.1em] border border-error/10 backdrop-blur-md">
-            <AlertCircle size={18} />
-            <span>Storage footprint maintained until purge</span>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleEmptyTrash}
+              disabled={isPurgingAll}
+              className="px-6 py-3 bg-error text-on-error hover:opacity-90 rounded-2xl text-xs font-black uppercase tracking-[0.1em] shadow-lg shadow-error/20 transition-all flex items-center gap-3 active:scale-95 disabled:opacity-50"
+            >
+              {isPurgingAll ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
+              <span>Empty Trash ({files.length})</span>
+            </button>
+            <div className="hidden lg:flex items-center gap-3 text-error bg-error-container/20 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-[0.1em] border border-error/10 backdrop-blur-md">
+              <AlertCircle size={18} />
+              <span>Storage footprint maintained until purge</span>
+            </div>
           </div>
         )}
       </header>
@@ -165,8 +194,20 @@ export default function Trash() {
                               </div>
                            </div>
                         </td>
-                        <td className="px-10 py-6 text-sm text-on-surface-variant font-bold opacity-60">
-                           {(file as any).deletedAt ? format((file as any).deletedAt, 'MMM d, yyyy HH:mm') : 'Recently'}
+                        <td className="px-10 py-6 text-sm text-on-surface-variant font-bold">
+                           <div className="space-y-1">
+                             <p className="opacity-60 text-xs">{(file as any).deletedAt ? format((file as any).deletedAt, 'MMM d, yyyy HH:mm') : 'Recently'}</p>
+                             {(() => {
+                               const deletedAt = (file as any).deletedAt || Date.now();
+                               const daysElapsed = Math.floor((Date.now() - deletedAt) / (1000 * 60 * 60 * 24));
+                               const daysRemaining = Math.max(0, 30 - daysElapsed);
+                               return (
+                                 <span className="text-[10px] font-black uppercase tracking-wider text-error bg-error-container/20 px-2 py-0.5 rounded-md inline-block">
+                                   {daysRemaining} days until auto-scrub
+                                 </span>
+                               );
+                             })()}
+                           </div>
                         </td>
                         <td className="px-10 py-6 text-right last:rounded-r-[2rem]">
                            <div className="flex justify-end gap-4">

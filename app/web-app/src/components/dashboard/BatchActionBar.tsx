@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Star, Folder as FolderIcon, Trash2 } from 'lucide-react';
+import { X, Star, Folder as FolderIcon, Trash2, Download } from 'lucide-react';
 
 interface BatchActionBarProps {
   selectedCount: number;
@@ -10,6 +10,7 @@ interface BatchActionBarProps {
   onBatchStar: () => void;
   onBatchMove: () => void;
   onBatchDelete: () => void;
+  onBatchDownload: () => void;
 }
 
 export const BatchActionBar = ({
@@ -17,7 +18,8 @@ export const BatchActionBar = ({
   onClearSelection,
   onBatchStar,
   onBatchMove,
-  onBatchDelete
+  onBatchDelete,
+  onBatchDownload
 }: BatchActionBarProps) => {
   return (
     <AnimatePresence>
@@ -33,6 +35,9 @@ export const BatchActionBar = ({
              <span className="text-sm font-black whitespace-nowrap">{selectedCount} Selected</span>
           </div>
           <div className="flex items-center gap-2">
+             <button onClick={onBatchDownload} className="flex items-center gap-2 px-5 py-3 hover:bg-on-secondary-container/10 rounded-2xl transition-all text-sm font-bold active:scale-90">
+                <Download size={20} /> Download
+             </button>
              <button onClick={onBatchStar} className="flex items-center gap-2 px-5 py-3 hover:bg-on-secondary-container/10 rounded-2xl transition-all text-sm font-bold active:scale-90">
                 <Star size={20} /> Star
              </button>

@@ -117,3 +117,13 @@ export const updateLastOpened = async (userId: string, fileId: string) => {
     console.error("[SYS] Last opened update failed:", err);
   }
 };
+
+/**
+ * Updates the tags for a file.
+ */
+export const updateFileTags = async (userId: string, fileId: string, tags: string[]) => {
+  const fileRef = doc(db, 'users', userId, 'user_files', fileId);
+  await updateDoc(fileRef, {
+    tags
+  });
+};
