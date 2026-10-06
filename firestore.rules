@@ -12,27 +12,43 @@ service cloud.firestore {
       return request.auth.token.get('email', '').lower();
     }
 
-    // --- Owner Level Access (CRITICAL) ---
-    // This allows the owner to read/write EVERYTHING under their own path and subcollections.
+    // --- User Data ---
     match /users/{userId} {
       allow read, write: if isSignedIn() && request.auth.uid == userId;
 
-      match /{allPaths=**} {
+      match /user_files/{fileId} {
         allow read, write: if isSignedIn() && request.auth.uid == userId;
+
+        // 🚨 CRITICAL: Allow invited users to add themselves to the file
+        // This is required for the 'Accept Invitation' flow to work.
+        allow update: if isSignedIn() && (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['sharedWith', 'sharedWithEmails'])
+        );
+
+        // Allow reading if shared or public
+        allow read: if isSignedIn() && (
+          getEmail() in resource.data.get('sharedWithEmails', []) ||
+          resource.data.get('isPublic', false) == true ||
+          resource.data.get('isPubliclyShared', false) == true
+        );
       }
+
+      // Activities, Trash & Devices (Owner Only)
+      match /activities/{id} { allow read, write: if isSignedIn() && request.auth.uid == userId; }
+      match /trash_files/{id} { allow read, write: if isSignedIn() && request.auth.uid == userId; }
+      match /devices/{id} { allow read, write: if isSignedIn() && request.auth.uid == userId; }
     }
 
     // --- Invitations (Shared Inbox) ---
     match /invitations/{inviteId} {
-      allow create: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
       allow read, update, delete: if isSignedIn() && (
         resource.data.get('senderId', '') == request.auth.uid ||
         resource.data.get('recipientEmail', '').lower() == getEmail()
       );
     }
 
-    // --- Global Shared File Access ---
-    // Allows reading files shared with you or public files from other users.
+    // --- Global Shared File Access (Collection Group) ---
     match /{path=**}/user_files/{fileId} {
       allow read: if isSignedIn() && (
         getEmail() in resource.data.get('sharedWithEmails', []) ||
@@ -41,7 +57,6 @@ service cloud.firestore {
       );
     }
 
-    // --- Final Security Guard ---
     match /{document=**} {
       allow read, write: if false;
     }
