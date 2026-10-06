@@ -787,12 +787,12 @@ export default function SettingsPage() {
         <section className="bg-error/5 border border-error/20 rounded-[3rem] p-10 mt-8 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden group">
            <div className="absolute inset-0 bg-error/5 opacity-0 group-hover:opacity-100 transition-opacity" />
            <div className="space-y-2 text-center md:text-left relative z-10">
-              <h3 className="text-headline-small font-black text-error">Decommission Vault</h3>
+              <h3 className="text-headline-small font-black text-error">Delete Account</h3>
               <p className="text-sm text-error/70 font-bold uppercase tracking-widest">Permanent account termination</p>
-              <p className="text-xs text-on-surface-variant max-w-sm mt-2 font-medium">All encrypted data will be scrubbed from multi-region storage nodes instantly.</p>
+              <p className="text-xs text-on-surface-variant max-w-sm mt-2 font-medium">All encrypted data will be permanently deleted from storage instantly.</p>
            </div>
            <button className="px-10 py-5 bg-error text-on-error font-black rounded-3xl hover:shadow-2xl shadow-error/20 transition-all active:scale-95 relative z-10 uppercase tracking-widest text-xs">
-              Destroy Account
+              Delete Account
            </button>
         </section>
 
