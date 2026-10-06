@@ -118,6 +118,27 @@ export default function SettingsPage() {
     }
   };
 
+  const handleRegisterCurrentDevice = async () => {
+    if (!user) return;
+    const toastId = showToast('Registering current hardware node...', 'loading');
+    try {
+      const newDev = {
+        name: `${currentNodeInfo.browser} (${navigator.platform})`,
+        type: navigator.platform.includes('Win') ? 'Windows Workstation' : navigator.platform.includes('Mac') ? 'Apple Mac Node' : 'Mobile Node',
+        location: currentNodeInfo.location,
+        ip: currentNodeInfo.ip,
+        lastActive: 'Just now',
+        createdAt: Date.now()
+      };
+      await addDoc(collection(db, 'users', user.uid, 'devices'), newDev);
+      hideToast(toastId);
+      showToast('Current node registered successfully', 'success');
+    } catch (err: any) {
+      hideToast(toastId);
+      showToast(err.message, 'error');
+    }
+  };
+
   React.useEffect(() => {
     // Basic browser detection
     const ua = navigator.userAgent;
@@ -799,7 +820,7 @@ export default function SettingsPage() {
            <section className="bg-surface-variant/10 border border-outline/5 rounded-[3rem] p-10 shadow-sm relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-32 -mt-32" />
 
-              <div className="flex items-center justify-between mb-10 relative z-10">
+              <div className="flex items-center justify-between mb-10 relative z-10 flex-wrap gap-4">
                 <div className="flex items-center gap-5">
                   <div className="p-4 bg-primary-container text-on-primary-container rounded-3xl shadow-sm">
                     <Smartphone size={28} />
@@ -809,14 +830,22 @@ export default function SettingsPage() {
                     <p className="text-body-small text-on-surface-variant font-bold uppercase tracking-widest">Hardware authorization list</p>
                   </div>
                 </div>
-                {devices.length > 0 && (
+                <div className="flex items-center gap-3">
                   <button
-                    onClick={handleRevokeAll}
-                    className="px-6 py-3 bg-error-container/20 text-error hover:bg-error hover:text-on-error rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-sm active:scale-95 border border-error/10"
+                    onClick={handleRegisterCurrentDevice}
+                    className="px-6 py-3 bg-primary text-on-primary hover:opacity-90 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-md shadow-primary/20 active:scale-95 flex items-center gap-2"
                   >
-                    Revoke All Other Sessions
+                    <Cpu size={16} /> Register Node
                   </button>
-                )}
+                  {devices.length > 0 && (
+                    <button
+                      onClick={handleRevokeAll}
+                      className="px-6 py-3 bg-error-container/20 text-error hover:bg-error hover:text-on-error rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-sm active:scale-95 border border-error/10"
+                    >
+                      Revoke All Other Sessions
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-4 relative z-10">
