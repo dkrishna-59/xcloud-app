@@ -1,6 +1,6 @@
 "use client";
 
-import React, { memo } from 'react';
+import React, { useState, memo } from 'react';
 import {
   File,
   FileText,
@@ -8,6 +8,7 @@ import {
   Video,
   Music,
   Folder as FolderIcon,
+  FolderInput,
   MoreVertical,
   MoreHorizontal,
   Star,
@@ -42,6 +43,8 @@ interface FileItemProps {
   onNewNameChange: (name: string) => void;
   onRenameSubmit: (id: string) => void;
   onCancelRename: () => void;
+  onStartRename: (file: FileEntry) => void;
+  onMove: (file: FileEntry) => void;
   onToggleSelection: (e: React.MouseEvent, id: string) => void;
   onClick: (e: React.MouseEvent) => void;
   onDoubleClick: () => void;
@@ -83,6 +86,8 @@ export const FileItem = memo(({
   onNewNameChange,
   onRenameSubmit,
   onCancelRename,
+  onStartRename,
+  onMove,
   onToggleSelection,
   onClick,
   onDoubleClick,
@@ -92,6 +97,8 @@ export const FileItem = memo(({
   onShare,
   onDelete
 }: FileItemProps) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   return (
     <motion.div
       layout
@@ -200,39 +207,59 @@ export const FileItem = memo(({
              <Star size={18} fill={file.isStarred ? 'currentColor' : 'none'} />
            </button>
         )}
-        <div className="relative group/menu">
-          <button className="p-2.5 text-on-surface-variant hover:bg-surface-variant rounded-xl transition-colors">
+        <div className="relative">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsMenuOpen(!isMenuOpen);
+            }}
+            className="p-2.5 text-on-surface-variant hover:bg-surface-variant rounded-xl transition-colors"
+          >
             <MoreHorizontal size={20} />
           </button>
-          <div className="absolute right-0 top-full mt-2 w-56 bg-surface border border-outline/10 shadow-2xl rounded-[1.5rem] py-2.5 z-[60] hidden group-hover/menu:block animate-in fade-in zoom-in duration-200">
-             {[
-               { icon: Edit2, label: 'Rename', action: () => onCancelRename() /* Triggered from outside */ },
-               { icon: Download, label: 'Download', action: () => onDownload(file) },
-               { icon: Share2, label: 'Share Link', action: () => onShare(file) },
-               { icon: Info, label: 'Properties', action: () => onInfoClick(file) }
-             ].map((item, i) => (
-               <button
-                 key={i}
-                 onClick={(e) => {
-                   e.stopPropagation();
-                   if (item.label === 'Rename') {
-                     onCancelRename();
-                   }
-                   item.action();
-                 }}
-                 className="w-full text-left px-5 py-3 text-sm font-bold text-on-surface-variant hover:bg-surface-variant/50 flex items-center gap-4 transition-all"
-               >
-                 <item.icon size={18} className="text-outline" /> {item.label}
-               </button>
-             ))}
-             <div className="h-px bg-outline/5 my-2 mx-3" />
-             <button
-               onClick={(e) => { e.stopPropagation(); onDelete(file); }}
-               className="w-full text-left px-5 py-3 text-sm font-bold text-error hover:bg-error-container/20 flex items-center gap-4 transition-all"
-             >
-               <Trash2 size={18} /> Move to Trash
-             </button>
-          </div>
+
+          {isMenuOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-50"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsMenuOpen(false);
+                }}
+              />
+              <div className="absolute right-0 top-full mt-2 w-56 bg-surface border border-outline/10 shadow-2xl rounded-[1.5rem] py-2.5 z-[60] animate-in fade-in zoom-in duration-200">
+                 {[
+                   { icon: Edit2, label: 'Rename', action: () => { setIsMenuOpen(false); onStartRename(file); } },
+                   { icon: FolderInput, label: 'Move to...', action: () => { setIsMenuOpen(false); onMove(file); } },
+                   { icon: Download, label: 'Download', action: () => { setIsMenuOpen(false); onDownload(file); } },
+                   { icon: Share2, label: 'Share Link', action: () => { setIsMenuOpen(false); onShare(file); } },
+                   { icon: Info, label: 'Properties', action: () => { setIsMenuOpen(false); onInfoClick(file); } }
+                 ].map((item, i) => (
+                   <button
+                     key={i}
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       item.action();
+                     }}
+                     className="w-full text-left px-5 py-3 text-sm font-bold text-on-surface-variant hover:bg-surface-variant/50 flex items-center gap-4 transition-all"
+                   >
+                     <item.icon size={18} className="text-outline" /> {item.label}
+                   </button>
+                 ))}
+                 <div className="h-px bg-outline/5 my-2 mx-3" />
+                 <button
+                   onClick={(e) => {
+                     e.stopPropagation();
+                     setIsMenuOpen(false);
+                     onDelete(file);
+                   }}
+                   className="w-full text-left px-5 py-3 text-sm font-bold text-error hover:bg-error-container/20 flex items-center gap-4 transition-all"
+                 >
+                   <Trash2 size={18} /> Move to Trash
+                 </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </motion.div>

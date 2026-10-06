@@ -43,9 +43,6 @@ const MoveToFolderModal = dynamic(() => import('./MoveToFolderModal').then(mod =
 const MediaPreviewer = dynamic(() => import('./MediaPreviewer').then(mod => mod.MediaPreviewer));
 const FileInfoPanel = dynamic(() => import('./FileInfoPanel').then(mod => mod.FileInfoPanel));
 
-// In-memory cache to speed up tab switching between mounts
-const DASHBOARD_CACHE: Record<string, { files: FileEntry[], invitations: Invitation[] }> = {};
-
 const FileItemSkeleton = ({ viewMode }: { viewMode: 'grid' | 'list' }) => (
   <div className={cn(
     "bg-surface-variant/10 rounded-[2rem] animate-pulse",
@@ -66,19 +63,15 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
   const { showToast, hideToast } = useToast();
   const { searchQuery } = useSearch();
 
-  // 1. Core Navigation State (Declared first so cache can use it)
+  // 1. Core Navigation State
   const [currentFolderId, setCurrentFolderId] = useState('root');
   const [breadcrumbs, setBreadcrumbs] = useState<{ id: string, name: string }[]>([{ id: 'root', name: 'My Drive' }]);
 
-  // 2. Caching Layer
-  const cacheKey = `${filter}-${currentFolderId}-${user?.uid}`;
-  const cachedData = DASHBOARD_CACHE[cacheKey];
-
-  // 3. Data States
-  const [files, setFiles] = useState<FileEntry[]>(cachedData?.files || []);
-  const [invitations, setInvitations] = useState<Invitation[]>(cachedData?.invitations || []);
+  // 2. Data States
+  const [files, setFiles] = useState<FileEntry[]>([]);
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [uploadingFiles, setUploadingFiles] = useState<Record<string, number>>({});
-  const [isLoading, setIsLoading] = useState(!cachedData);
+  const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [editingFile, setEditingFile] = useState<string | null>(null);
@@ -107,11 +100,7 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
   useEffect(() => {
     if (!user) return;
 
-    if (cachedData) {
-       setIsRefreshing(true);
-    } else {
-       setIsLoading(true);
-    }
+    setIsLoading(true);
 
     let q;
 
@@ -178,7 +167,6 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
         }
 
         setInvitations(inviteDocs);
-        DASHBOARD_CACHE[cacheKey] = { ...DASHBOARD_CACHE[cacheKey], invitations: inviteDocs };
         setIsLoading(false);
         setIsRefreshing(false);
         return;
@@ -197,7 +185,6 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
       }
 
       setFiles(docs);
-      DASHBOARD_CACHE[cacheKey] = { ...DASHBOARD_CACHE[cacheKey], files: docs };
       setIsLoading(false);
       setIsRefreshing(false);
     }, (error) => {
@@ -908,6 +895,8 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
                       onNewNameChange={setNewName}
                       onRenameSubmit={handleRename}
                       onCancelRename={() => setEditingFile(null)}
+                      onStartRename={(f) => { setEditingFile(f.fileId); setNewName(f.fileName); }}
+                      onMove={(f) => { setSelectedFileIds([f.fileId]); setIsMoveModalOpen(true); }}
                       onToggleSelection={toggleSelection}
                       onClick={(e) => handleFileClick(e, file)}
                       onDoubleClick={() => {}}
