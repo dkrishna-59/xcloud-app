@@ -13,13 +13,13 @@ service cloud.firestore {
     }
 
     // --- Owner Level Access (CRITICAL) ---
-    // This allows the owner to read/write EVERYTHING under their own path.
-    match /users/{userId}/{document=**} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
-    }
-
+    // This allows the owner to read/write EVERYTHING under their own path and subcollections.
     match /users/{userId} {
       allow read, write: if isSignedIn() && request.auth.uid == userId;
+
+      match /{allPaths=**} {
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
+      }
     }
 
     // --- Invitations (Shared Inbox) ---
