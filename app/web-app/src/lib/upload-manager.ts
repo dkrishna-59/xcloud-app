@@ -40,12 +40,14 @@ export const uploadFile = async (
   storageUsed: number,
   storageAvailable: number,
   onProgress: UploadProgressCallback,
-  parentId: string = 'root'
+  parentId: string = 'root',
+  signal?: AbortSignal
 ): Promise<FileEntry> => {
 
   console.log(`[SYS] Initializing secure upload for: ${file.name}`);
 
   if (!userId) throw new Error("Auth State Error: No User ID");
+  if (signal?.aborted) throw new Error("Upload cancelled");
 
   // 1. Project Global Limit Validation
   const MAX_FILE_SIZE = 450 * 1024 * 1024; // 450MB Global Project Limit
@@ -100,6 +102,8 @@ export const uploadFile = async (
       }
     }
 
+    if (signal?.aborted) throw new Error("Upload cancelled");
+
     // Fallback to Firebase Storage if Supabase failed or is unconfigured
     if (!publicUrl && storage) {
       console.log("[SYS] Uploading via Firebase Storage fallback...");
@@ -107,14 +111,44 @@ export const uploadFile = async (
       const uploadTask = uploadBytesResumable(storageRef, file);
 
       await new Promise((resolve, reject) => {
-        uploadTask.on('state_changed',
+        let isSettled = false;
+
+        const unsubscribe = uploadTask.on('state_changed',
           (snapshot) => {
+            if (signal?.aborted || isSettled) return;
             const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
             onProgress(Math.max(1, Math.min(progress, 95)));
           },
-          (error) => reject(error),
-          () => resolve(uploadTask.snapshot)
+          (error) => {
+            if (!isSettled) {
+              isSettled = true;
+              unsubscribe();
+              if (error.code === 'storage/canceled' || signal?.aborted) {
+                reject(new Error("Upload cancelled"));
+              } else {
+                reject(error);
+              }
+            }
+          },
+          () => {
+            if (!isSettled) {
+              isSettled = true;
+              unsubscribe();
+              resolve(uploadTask.snapshot);
+            }
+          }
         );
+
+        signal?.addEventListener('abort', () => {
+          if (!isSettled) {
+            isSettled = true;
+            unsubscribe();
+            try {
+              uploadTask.cancel();
+            } catch (_) {}
+            reject(new Error("Upload cancelled"));
+          }
+        });
       });
 
       publicUrl = await getDownloadURL(storageRef);
@@ -125,6 +159,7 @@ export const uploadFile = async (
       throw new Error("Upload failed: No storage provider available or configured.");
     }
 
+    if (signal?.aborted) throw new Error("Upload cancelled");
     onProgress(90);
 
     // 3. Sync metadata to Firestore

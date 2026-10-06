@@ -19,7 +19,8 @@ import {
   Lock,
   MoreHorizontal,
   Ban,
-  Globe
+  Globe,
+  X
 } from 'lucide-react';
 import { moveToTrash } from '@/lib/trash-manager';
 import { updateFileName, createFolder, updateLastOpened } from '@/lib/file-manager';
@@ -32,6 +33,7 @@ import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { StorageWidget } from './storage-widget';
 import { cn } from '@/lib/utils';
+import JSZip from 'jszip';
 import { FileItem } from './FileItem';
 import { BatchActionBar } from './BatchActionBar';
 import { InvitationItem } from './InvitationItem';
@@ -137,8 +139,8 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
           orderBy('createdAt', 'desc')
         );
       }
-    } else if (filter === 'all') {
-      // "Home" - Show Recently Opened/Uploaded across all folders
+    } else if (filter === 'all' && currentFolderId === 'root' && !searchQuery) {
+      // "Home" - Show Recently Opened/Uploaded across all folders only when at root
       q = query(
         collection(db, 'users', user.uid, 'user_files'),
         where('isDeleted', '==', false),
@@ -153,6 +155,8 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
 
       if (filter === 'starred') {
         q = query(q, where('isStarred', '==', true));
+      } else if (currentFolderId !== 'root' && !searchQuery) {
+        q = query(q, where('parentId', '==', currentFolderId));
       } else if (filter === 'files' && !searchQuery) {
         q = query(q, where('parentId', '==', currentFolderId));
       }
@@ -246,11 +250,29 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
     });
   }, [files, searchQuery, filter, fileTypeFilter, sortBy]);
 
+  const uploadControllersRef = useRef<Record<string, AbortController>>({});
+
+  const cancelUpload = useCallback((tempId: string) => {
+    if (uploadControllersRef.current[tempId]) {
+      uploadControllersRef.current[tempId].abort();
+      delete uploadControllersRef.current[tempId];
+    }
+    setUploadingFiles(prev => {
+      const next = { ...prev };
+      delete next[tempId];
+      return next;
+    });
+    showToast("Upload cancelled", "info");
+  }, [showToast]);
+
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (!user || !userMetadata) return;
 
     for (const file of acceptedFiles) {
       const tempId = Math.random().toString(36).substring(7);
+      const controller = new AbortController();
+      uploadControllersRef.current[tempId] = controller;
+
       const toastId = showToast(`Uploading ${file.name}...`, 'loading');
       setUploadingFiles(prev => ({ ...prev, [tempId]: 1 }));
 
@@ -263,14 +285,20 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
           (progress) => {
             setUploadingFiles(prev => ({ ...prev, [tempId]: progress }));
           },
-          currentFolderId
+          currentFolderId,
+          controller.signal
         );
         hideToast(toastId);
         showToast(`${file.name} uploaded successfully`, 'success');
       } catch (error: any) {
         hideToast(toastId);
-        showToast(error.message, 'error');
+        if (error.message.includes("cancelled")) {
+          showToast(`Upload cancelled for ${file.name}`, 'info');
+        } else {
+          showToast(error.message, 'error');
+        }
       } finally {
+        delete uploadControllersRef.current[tempId];
         setTimeout(() => {
           setUploadingFiles(prev => {
             const next = { ...prev };
@@ -426,16 +454,43 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
     }
   }, [user, selectedFileIds, showToast]);
 
-  const handleBatchDownload = useCallback(() => {
+  const handleBatchDownload = useCallback(async () => {
     if (selectedFileIds.length === 0) return;
-    selectedFileIds.forEach(id => {
-      const file = files.find(f => f.fileId === id);
-      if (file && file.downloadUrl) {
-        window.open(file.downloadUrl, '_blank');
+    const toastId = showToast(`Preparing ZIP archive for ${selectedFileIds.length} item(s)...`, 'loading');
+    try {
+      const zip = new JSZip();
+      const folder = zip.folder("xcloud_export");
+
+      for (const id of selectedFileIds) {
+        const file = files.find(f => f.fileId === id);
+        if (file && file.downloadUrl) {
+          try {
+            const response = await fetch(file.downloadUrl);
+            const blob = await response.blob();
+            folder?.file(file.fileName, blob);
+          } catch (err) {
+            console.error(`Failed to fetch ${file.fileName} for zip:`, err);
+          }
+        }
       }
-    });
-    showToast(`Downloading ${selectedFileIds.length} item(s)`, 'success');
-  }, [selectedFileIds, files, showToast]);
+
+      const content = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(content);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `xcloud_batch_${Date.now()}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      hideToast(toastId);
+      showToast('Batch ZIP archive downloaded successfully', 'success');
+    } catch (error: any) {
+      hideToast(toastId);
+      showToast(`Batch download failed: ${error.message}`, 'error');
+    }
+  }, [selectedFileIds, files, showToast, hideToast]);
 
   const handleFileClick = useCallback((e: React.MouseEvent, file: FileEntry) => {
     if (e.shiftKey || selectedFileIds.length > 0) {
@@ -738,9 +793,18 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
                         <div key={id} className="space-y-2">
                           <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest opacity-60">
                              <span className="flex items-center gap-2 text-primary">
-                                Transferring to Supabase
+                                Transferring file...
                              </span>
-                             <span>{Math.round(progress)}%</span>
+                             <div className="flex items-center gap-3">
+                               <span>{Math.round(progress)}%</span>
+                               <button
+                                 onClick={() => cancelUpload(id)}
+                                 title="Cancel upload"
+                                 className="p-1 rounded-full hover:bg-error/20 text-error transition-colors cursor-pointer"
+                               >
+                                 <X size={14} />
+                               </button>
+                             </div>
                           </div>
                           <div className="w-full bg-on-primary-container/10 rounded-full h-2 overflow-hidden">
                             <motion.div
