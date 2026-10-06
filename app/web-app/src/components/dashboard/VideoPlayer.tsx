@@ -699,10 +699,10 @@ export const VideoPlayer = ({ file, onClose }: VideoPlayerProps) => {
       <AnimatePresence>
         {showShortcutsModal && (
           <motion.div
-            initial={{ opacity: '0' }}
+            initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-6"
+            className="fixed inset-0 z-[250] flex items-center justify-center bg-black/70 backdrop-blur-md p-6"
             onClick={(e) => { e.stopPropagation(); setShowShortcutsModal(false); }}
           >
             <div
