@@ -23,7 +23,7 @@ import { db } from '@/lib/firebase';
 
 const navItems = [
   { name: 'Home', href: '/dashboard', icon: Home },
-  { name: 'Favourites', href: '/favourites', icon: Star },
+  { name: 'Favorites', href: '/favorites', icon: Star },
   { name: 'Shared', href: '/shared', icon: Users },
   { name: 'Files', href: '/files', icon: Files },
   { name: 'Trash', href: '/trash', icon: Trash2 },
