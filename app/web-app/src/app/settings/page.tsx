@@ -73,15 +73,7 @@ export default function SettingsPage() {
     const q = query(collection(db, 'users', user.uid, 'devices'));
     const unsub = onSnapshot(q, (snapshot) => {
       const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      if (list.length === 0) {
-        const defaultDevices = [
-          { name: 'Mobile Node X14', type: 'Android Smartphone', location: 'New York, US', ip: '104.28.32.11', lastActive: '2 hours ago' },
-          { name: 'Workstation Node', type: 'Windows NT', location: 'London, UK', ip: '82.145.210.4', lastActive: 'Active 12m ago' }
-        ];
-        defaultDevices.forEach(d => addDoc(collection(db, 'users', user.uid, 'devices'), d).catch(console.error));
-      } else {
-        setDevices(list);
-      }
+      setDevices(list);
     });
     return () => unsub();
   }, [user]);
