@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
+import { storage, db } from "./firebase";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { doc, collection, setDoc, updateDoc, increment, serverTimestamp } from "firebase/firestore";
-import { db } from "./firebase";
 import { logActivity } from "./activity-manager";
 import { updateParentFolderSizes } from "./file-manager";
 
@@ -30,7 +31,7 @@ export interface FileEntry {
 export type UploadProgressCallback = (progress: number) => void;
 
 /**
- * Robust upload handler using Supabase Storage for binary data
+ * Robust upload handler using Supabase Storage or Firebase Storage fallback for binary data
  * and Firebase Firestore for metadata.
  */
 export const uploadFile = async (
@@ -42,7 +43,7 @@ export const uploadFile = async (
   parentId: string = 'root'
 ): Promise<FileEntry> => {
 
-  console.log(`[SYS] Initializing Supabase upload for: ${file.name}`);
+  console.log(`[SYS] Initializing secure upload for: ${file.name}`);
 
   if (!userId) throw new Error("Auth State Error: No User ID");
 
@@ -60,43 +61,69 @@ export const uploadFile = async (
   const fileId = `file_${Date.now()}_${Math.random().toString(36).substring(7)}`;
   const storagePath = `${userId}/${fileId}-${file.name}`;
 
-  console.log(`[SYS] Uploading to path: ${storagePath}`);
+  console.log(`[SYS] Uploading to storage path: ${storagePath}`);
 
   try {
-    // 1. Upload to Supabase Storage ('files' bucket) with Progress
-    console.log("[SYS] Triggering Supabase Storage request...");
+    let publicUrl = "";
 
-    // Manual timeout wrapper for Supabase upload
-    const uploadPromise = supabase.storage
-      .from('files')
-      .upload(storagePath, file, {
-        cacheControl: '3600',
-        upsert: false,
-        // @ts-ignore
-        onUploadProgress: (progress) => {
-          const percent = (progress.loaded / progress.total) * 100;
-          console.log(`[SYS] Supabase progress: ${percent.toFixed(1)}%`);
-          onProgress(Math.max(1, Math.min(percent, 95)));
+    // Check if Supabase has valid configuration (not placeholder)
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+    const isSupabaseValid = supabase && supabaseKey && !supabaseKey.includes('your_supabase_');
+
+    if (isSupabaseValid) {
+      try {
+        console.log("[SYS] Attempting Supabase Storage upload...");
+        const uploadPromise = supabase.storage
+          .from('files')
+          .upload(storagePath, file, {
+            cacheControl: '3600',
+            upsert: false,
+            // @ts-ignore
+            onUploadProgress: (progress) => {
+              const percent = (progress.loaded / progress.total) * 100;
+              onProgress(Math.max(1, Math.min(percent, 95)));
+            }
+          });
+
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Supabase Upload Timeout")), 15000)
+        );
+
+        const { data, error } = await Promise.race([uploadPromise, timeoutPromise]) as any;
+        if (!error) {
+          const { data: { publicUrl: url } } = supabase.storage.from('files').getPublicUrl(storagePath);
+          publicUrl = url;
+          console.log("[SYS] Supabase upload successful.");
         }
-      });
-
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Supabase Upload Timeout: No response from server. Check your connection or Supabase URL/Key.")), 40000)
-    );
-
-    const { data, error } = await Promise.race([uploadPromise, timeoutPromise]) as any;
-
-    if (error) {
-        console.error("[SYS] Supabase Storage Error:", error);
-        throw new Error(error.message || "Storage error");
+      } catch (err) {
+        console.warn("[SYS] Supabase upload failed or timed out, falling back to Firebase Storage...", err);
+      }
     }
 
-    onProgress(80);
+    // Fallback to Firebase Storage if Supabase failed or is unconfigured
+    if (!publicUrl && storage) {
+      console.log("[SYS] Uploading via Firebase Storage fallback...");
+      const storageRef = ref(storage, storagePath);
+      const uploadTask = uploadBytesResumable(storageRef, file);
 
-    // 2. Get Public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('files')
-      .getPublicUrl(storagePath);
+      await new Promise((resolve, reject) => {
+        uploadTask.on('state_changed',
+          (snapshot) => {
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            onProgress(Math.max(1, Math.min(progress, 95)));
+          },
+          (error) => reject(error),
+          () => resolve(uploadTask.snapshot)
+        );
+      });
+
+      publicUrl = await getDownloadURL(storageRef);
+      console.log("[SYS] Firebase Storage fallback upload successful.");
+    }
+
+    if (!publicUrl) {
+      throw new Error("Upload failed: No storage provider available or configured.");
+    }
 
     onProgress(90);
 
@@ -109,7 +136,7 @@ export const uploadFile = async (
       downloadUrl: publicUrl,
       uploadTimestamp: serverTimestamp(),
       ownerId: userId,
-      storagePath, // Relative path in Supabase bucket
+      storagePath,
       isDeleted: false,
       isStarred: false,
       parentId,
@@ -131,12 +158,12 @@ export const uploadFile = async (
     // Log Activity
     await logActivity(userId, 'UPLOAD', `Successfully uploaded ${file.name}`, file.name);
 
-    console.log(`[SYS] Supabase Upload complete: ${file.name}`);
+    console.log(`[SYS] Upload complete: ${file.name}`);
     onProgress(100);
     return fileEntry;
 
   } catch (error: any) {
-    console.error("[SYS] Supabase Upload Error:", error);
+    console.error("[SYS] Upload Error:", error);
     throw new Error(`Upload failed: ${error.message || 'Check connection'}`);
   }
 };
