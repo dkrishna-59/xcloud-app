@@ -25,7 +25,10 @@ import {
   Zap,
   Subtitles,
   Keyboard,
-  X
+  X,
+  Camera,
+  Repeat,
+  Sliders
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileEntry } from '@/lib/upload-manager';
@@ -60,6 +63,10 @@ export const VideoPlayer = ({ file, onClose }: VideoPlayerProps) => {
   const [hasCaptions, setHasCaptions] = useState(false);
   const [skipAmount, setSkipAmount] = useState(10);
   const [quality, setQuality] = useState('Auto');
+  const [isLooping, setIsLooping] = useState(false);
+  const [brightness, setBrightness] = useState(100);
+  const [contrast, setContrast] = useState(100);
+
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const compressorRef = useRef<DynamicsCompressorNode | null>(null);
@@ -142,6 +149,22 @@ export const VideoPlayer = ({ file, onClose }: VideoPlayerProps) => {
     }
   };
 
+  const takeSnapshot = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!videoRef.current) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = videoRef.current.videoWidth || 1280;
+    canvas.height = videoRef.current.videoHeight || 720;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = `vlc_snapshot_${Date.now()}.png`;
+    a.click();
+  };
+
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation();
     const time = parseFloat(e.target.value);
@@ -214,7 +237,6 @@ export const VideoPlayer = ({ file, onClose }: VideoPlayerProps) => {
     }
   };
 
-  // Check for captions on load and periodically as they might load late
   const handleLoadedMetadata = () => {
     setDuration(videoRef.current?.duration || 0);
     setIsLoading(false);
@@ -264,6 +286,9 @@ export const VideoPlayer = ({ file, onClose }: VideoPlayerProps) => {
         case 'KeyF':
           toggleFullscreen();
           break;
+        case 'KeyS':
+          takeSnapshot();
+          break;
       }
     };
 
@@ -298,6 +323,10 @@ export const VideoPlayer = ({ file, onClose }: VideoPlayerProps) => {
       <video
         ref={videoRef}
         src={file.downloadUrl}
+        loop={isLooping}
+        style={{
+          filter: `brightness(${brightness}%) contrast(${contrast}%)`
+        }}
         className={cn(
           "w-full h-full object-contain",
           aspectRatio === '16/9' && "aspect-video object-cover",
@@ -373,7 +402,6 @@ export const VideoPlayer = ({ file, onClose }: VideoPlayerProps) => {
                        className="absolute h-full bg-primary"
                        style={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
                      />
-                     {/* Buffered indicator could go here */}
                   </div>
                   <span className="text-white text-xs font-bold w-12 text-right">{formatTime(duration)}</span>
                </div>
@@ -439,6 +467,20 @@ export const VideoPlayer = ({ file, onClose }: VideoPlayerProps) => {
                            </button>
                         )}
                         <button
+                          onClick={takeSnapshot}
+                          className="p-3 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+                          title="Take Snapshot (S)"
+                        >
+                           <Camera size={20} />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setIsLooping(!isLooping); }}
+                          className={cn("p-3 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all", isLooping && "text-primary bg-primary/25")}
+                          title={isLooping ? "Loop Enabled" : "Loop Disabled"}
+                        >
+                           <Repeat size={20} />
+                        </button>
+                        <button
                           onClick={(e) => { e.stopPropagation(); setShowShortcutsModal(true); }}
                           className="p-3 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
                           title="Keyboard Shortcuts (?)"
@@ -490,6 +532,42 @@ export const VideoPlayer = ({ file, onClose }: VideoPlayerProps) => {
                                  {rate}x
                                </button>
                              ))}
+                          </div>
+                       </div>
+
+                       <div className="h-px bg-outline/5" />
+
+                       <div>
+                          <p className="text-[10px] font-black text-outline uppercase tracking-widest mb-3 px-1">VLC Video Adjustments</p>
+                          <div className="space-y-3 px-1">
+                             <div>
+                                <div className="flex justify-between text-xs font-bold text-on-surface-variant mb-1">
+                                   <span>Brightness</span>
+                                   <span>{brightness}%</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="50"
+                                  max="150"
+                                  value={brightness}
+                                  onChange={(e) => { e.stopPropagation(); setBrightness(Number(e.target.value)); }}
+                                  className="w-full accent-primary cursor-pointer"
+                                />
+                             </div>
+                             <div>
+                                <div className="flex justify-between text-xs font-bold text-on-surface-variant mb-1">
+                                   <span>Contrast</span>
+                                   <span>{contrast}%</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="50"
+                                  max="150"
+                                  value={contrast}
+                                  onChange={(e) => { e.stopPropagation(); setContrast(Number(e.target.value)); }}
+                                  className="w-full accent-primary cursor-pointer"
+                                />
+                             </div>
                           </div>
                        </div>
 
@@ -574,9 +652,9 @@ export const VideoPlayer = ({ file, onClose }: VideoPlayerProps) => {
                                 <div className="flex items-center gap-3">
                                    <Volume2 size={14} />
                                    <span>English (Primary)</span>
-                                </div>
+                                 </div>
                                 <ChevronRight size={14} />
-                             </button>
+                              </button>
                              <button
                                 onClick={toggleCaptions}
                                 disabled={!hasCaptions}
@@ -604,7 +682,7 @@ export const VideoPlayer = ({ file, onClose }: VideoPlayerProps) => {
                                 <div className="flex items-center gap-3">
                                    <Zap size={14} />
                                    <span>Audio Normalization</span>
-                                </div>
+                                  </div>
                                 <div className={cn("w-2 h-2 rounded-full", isNormalized ? "bg-primary" : "bg-outline/20")} />
                              </button>
                           </div>
@@ -621,15 +699,15 @@ export const VideoPlayer = ({ file, onClose }: VideoPlayerProps) => {
       <AnimatePresence>
         {showShortcutsModal && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: '0' }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-6"
             onClick={(e) => { e.stopPropagation(); setShowShortcutsModal(false); }}
           >
             <div
               className="bg-surface border border-outline/10 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-6"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); }}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -656,6 +734,7 @@ export const VideoPlayer = ({ file, onClose }: VideoPlayerProps) => {
                   { key: '→ / L', desc: `Fast forward ${skipAmount} seconds` },
                   { key: 'M', desc: 'Mute / Unmute' },
                   { key: 'F', desc: 'Toggle Fullscreen' },
+                  { key: 'S', desc: 'Take Video Snapshot' },
                   { key: '?', desc: 'Show / Hide Shortcuts' },
                 ].map((item, idx) => (
                   <div key={idx} className="flex items-center justify-between py-2 border-b border-outline/5 last:border-0">
