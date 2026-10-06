@@ -35,7 +35,7 @@ import {
 
 import { formatFileSize, cn } from '@/lib/utils';
 import { uploadAvatar } from '@/lib/profile-manager';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, collection, addDoc, deleteDoc, onSnapshot, query } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential, sendPasswordResetEmail } from 'firebase/auth';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -66,10 +66,57 @@ export default function SettingsPage() {
 
   const [activeTab, setActiveTab] = useState<'general' | 'devices'>('general');
   const [currentNodeInfo, setCurrentNodeInfo] = useState({ ip: 'Detecting...', location: 'Locating...', browser: 'Detecting...' });
-  const [mockDevices, setMockDevices] = useState([
-    { id: 'dev_1', name: 'Mobile Node X14', type: 'Android Smartphone', location: 'New York, US', icon: Smartphone, lastActive: '2 hours ago', ip: '104.28.32.11' },
-    { id: 'dev_2', name: 'Workstation Node', type: 'Windows NT', location: 'London, UK', icon: Monitor, lastActive: 'Active 12m ago', ip: '82.145.210.4' }
-  ]);
+  const [devices, setDevices] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, 'users', user.uid, 'devices'));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      if (list.length === 0) {
+        const defaultDevices = [
+          { name: 'Mobile Node X14', type: 'Android Smartphone', location: 'New York, US', ip: '104.28.32.11', lastActive: '2 hours ago' },
+          { name: 'Workstation Node', type: 'Windows NT', location: 'London, UK', ip: '82.145.210.4', lastActive: 'Active 12m ago' }
+        ];
+        defaultDevices.forEach(d => addDoc(collection(db, 'users', user.uid, 'devices'), d).catch(console.error));
+      } else {
+        setDevices(list);
+      }
+    });
+    return () => unsub();
+  }, [user]);
+
+  const handleDisconnectDevice = async (deviceId: string, deviceName: string) => {
+    if (!user) return;
+    if (confirm(`Decommission ${deviceName}? Secure access will be revoked from this hardware node.`)) {
+      const toastId = showToast(`Decommissioning ${deviceName}...`, 'loading');
+      try {
+        await deleteDoc(doc(db, 'users', user.uid, 'devices', deviceId));
+        hideToast(toastId);
+        showToast(`${deviceName} decommissioned successfully`, 'success');
+      } catch (err: any) {
+        hideToast(toastId);
+        showToast(err.message, 'error');
+      }
+    }
+  };
+
+  const handleRevokeAll = async () => {
+    if (!user) return;
+    if (confirm("Revoke all other sessions? All remote hardware nodes will be permanently disconnected.")) {
+      const toastId = showToast('Revoking all remote sessions...', 'loading');
+      try {
+        for (const dev of devices) {
+          await deleteDoc(doc(db, 'users', user.uid, 'devices', dev.id));
+        }
+        hideToast(toastId);
+        showToast('All remote sessions revoked successfully', 'success');
+      } catch (err: any) {
+        hideToast(toastId);
+        showToast(err.message, 'error');
+      }
+    }
+  };
 
   React.useEffect(() => {
     // Basic browser detection
@@ -192,16 +239,7 @@ export default function SettingsPage() {
     }
   };
 
-  const handleDisconnectDevice = (deviceId: string, deviceName: string) => {
-    if (confirm(`Decommission ${deviceName}? Secure access will be revoked from this hardware node.`)) {
-      const toastId = showToast(`Decommissioning ${deviceName}...`, 'loading');
-      setTimeout(() => {
-        setMockDevices(prev => prev.filter(d => d.id !== deviceId));
-        hideToast(toastId);
-        showToast(`${deviceName} decommissioned successfully`, 'success');
-      }, 1500);
-    }
-  };
+
 
   const handleSavePasscode = async () => {
     if (newPasscode.length < 6 || newPasscode.length > 15 || !/^\d+$/.test(newPasscode)) {
@@ -761,14 +799,24 @@ export default function SettingsPage() {
            <section className="bg-surface-variant/10 border border-outline/5 rounded-[3rem] p-10 shadow-sm relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-32 -mt-32" />
 
-              <div className="flex items-center gap-5 mb-10 relative z-10">
-                <div className="p-4 bg-primary-container text-on-primary-container rounded-3xl shadow-sm">
-                  <Smartphone size={28} />
+              <div className="flex items-center justify-between mb-10 relative z-10">
+                <div className="flex items-center gap-5">
+                  <div className="p-4 bg-primary-container text-on-primary-container rounded-3xl shadow-sm">
+                    <Smartphone size={28} />
+                  </div>
+                  <div>
+                    <h2 className="text-headline-small font-black text-on-surface">Active Nodes</h2>
+                    <p className="text-body-small text-on-surface-variant font-bold uppercase tracking-widest">Hardware authorization list</p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-headline-small font-black text-on-surface">Active Nodes</h2>
-                  <p className="text-body-small text-on-surface-variant font-bold uppercase tracking-widest">Hardware authorization list</p>
-                </div>
+                {devices.length > 0 && (
+                  <button
+                    onClick={handleRevokeAll}
+                    className="px-6 py-3 bg-error-container/20 text-error hover:bg-error hover:text-on-error rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-sm active:scale-95 border border-error/10"
+                  >
+                    Revoke All Other Sessions
+                  </button>
+                )}
               </div>
 
               <div className="space-y-4 relative z-10">
@@ -794,13 +842,13 @@ export default function SettingsPage() {
                     </div>
                  </div>
 
-                 {/* Other Mock Devices */}
+                 {/* Devices from Firestore */}
                  <div className="grid grid-cols-1 gap-4 pt-4">
-                    {mockDevices.map((device, i) => (
+                    {devices.map((device) => (
                        <div key={device.id} className="p-6 bg-surface border border-outline/10 rounded-[2rem] flex items-center justify-between group hover:border-primary/20 transition-all shadow-sm">
                           <div className="flex items-center gap-5">
                              <div className="w-12 h-12 bg-surface-variant text-on-surface-variant rounded-xl flex items-center justify-center group-hover:bg-primary-container group-hover:text-primary transition-colors shadow-inner">
-                                <device.icon size={24} />
+                                <Smartphone size={24} />
                              </div>
                              <div>
                                 <p className="text-sm font-black text-on-surface">{device.name}</p>
