@@ -59,7 +59,7 @@ export const uploadFile = async (
   }
 
   const fileId = `file_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-  const storagePath = `${userId}/${fileId}-${file.name}`;
+  const storagePath = `users/${userId}/${fileId}-${file.name}`;
 
   console.log(`[SYS] Uploading to storage path: ${storagePath}`);
 
