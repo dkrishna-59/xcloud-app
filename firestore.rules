@@ -9,7 +9,9 @@ service cloud.firestore {
     }
 
     function getEmail() {
-      return request.auth.token.get('email', '').lower();
+      return (request.auth.token.keys().hasAll(['email']) && request.auth.token.email != null)
+        ? request.auth.token.email.lower()
+        : '';
     }
 
     // --- User Data ---
@@ -20,17 +22,20 @@ service cloud.firestore {
         allow read, write: if isSignedIn() && request.auth.uid == userId;
 
         // 🚨 CRITICAL: Allow invited users to add themselves to the file
-        // This is required for the 'Accept Invitation' flow to work.
         allow update: if isSignedIn() && (
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['sharedWith', 'sharedWithEmails'])
         );
 
         // Allow reading if shared or public
         allow read: if isSignedIn() && (
-          getEmail() in resource.data.get('sharedWithEmails', []) ||
+          (getEmail() != '' && getEmail() in resource.data.get('sharedWithEmails', [])) ||
           resource.data.get('isPublic', false) == true ||
           resource.data.get('isPubliclyShared', false) == true
         );
+      }
+
+      match /shared_with_me/{fileId} {
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
       }
 
       // Activities, Trash & Devices (Owner Only)
@@ -41,17 +46,14 @@ service cloud.firestore {
 
     // --- Invitations (Shared Inbox) ---
     match /invitations/{inviteId} {
-      allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
-      allow read, update, delete: if isSignedIn() && (
-        resource.data.get('senderId', '') == request.auth.uid ||
-        resource.data.get('recipientEmail', '').lower() == getEmail()
-      );
+      allow create: if isSignedIn() && request.resource.data.get('senderId', '') == request.auth.uid;
+      allow read, update, delete: if isSignedIn();
     }
 
     // --- Global Shared File Access (Collection Group) ---
     match /{path=**}/user_files/{fileId} {
       allow read: if isSignedIn() && (
-        getEmail() in resource.data.get('sharedWithEmails', []) ||
+        (getEmail() != '' && getEmail() in resource.data.get('sharedWithEmails', [])) ||
         resource.data.get('isPublic', false) == true ||
         resource.data.get('isPubliclyShared', false) == true
       );

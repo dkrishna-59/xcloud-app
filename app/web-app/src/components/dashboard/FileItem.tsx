@@ -9,9 +9,13 @@ import {
   Music,
   Folder as FolderIcon,
   FolderInput,
+  Briefcase,
+  Star,
+  Heart,
+  Archive,
+  Code as CodeIcon,
   MoreVertical,
   MoreHorizontal,
-  Star,
   Download,
   Share2,
   Edit2,
@@ -23,10 +27,9 @@ import {
   Globe,
   Lock,
   Info,
-  Archive,
   Terminal,
-  Code as CodeIcon,
-  Type as FontIcon
+  Type as FontIcon,
+  Palette
 } from 'lucide-react';
 import { cn, formatFileSize } from '@/lib/utils';
 import { FileEntry } from '@/lib/upload-manager';
@@ -45,6 +48,7 @@ interface FileItemProps {
   onCancelRename: () => void;
   onStartRename: (file: FileEntry) => void;
   onMove: (file: FileEntry) => void;
+  onCustomizeFolder: (file: FileEntry) => void;
   onToggleSelection: (e: React.MouseEvent, id: string) => void;
   onClick: (e: React.MouseEvent) => void;
   onDoubleClick: () => void;
@@ -55,11 +59,28 @@ interface FileItemProps {
   onDelete: (file: FileEntry) => void;
 }
 
-const getFileIcon = (type: string, fileName: string = '') => {
+const getFileIcon = (type: string, fileName: string = '', folderColor?: string, folderIcon?: string) => {
   const ext = fileName.split('.').pop()?.toLowerCase();
 
+  if (type === 'Folder') {
+    let IconComp = FolderIcon;
+    if (folderIcon === 'briefcase') IconComp = Briefcase;
+    else if (folderIcon === 'star') IconComp = Star;
+    else if (folderIcon === 'heart') IconComp = Heart;
+    else if (folderIcon === 'archive') IconComp = Archive;
+    else if (folderIcon === 'code') IconComp = CodeIcon;
+
+    let colorClass = "text-amber-500";
+    if (folderColor === 'blue') colorClass = "text-blue-500";
+    else if (folderColor === 'indigo') colorClass = "text-indigo-500";
+    else if (folderColor === 'emerald') colorClass = "text-emerald-500";
+    else if (folderColor === 'purple') colorClass = "text-purple-500";
+    else if (folderColor === 'rose') colorClass = "text-rose-500";
+
+    return <IconComp className={cn(colorClass, "fill-current/20")} />;
+  }
+
   switch (type) {
-    case 'Folder': return <FolderIcon className="text-amber-500 fill-amber-500/20" />;
     case 'Image':
       if (ext === 'svg' || ext === 'ai') return <ImageIcon className="text-emerald-500" />;
       if (ext === 'psd' || ext === 'raw' || ext === 'dng') return <ImageIcon className="text-orange-500" />;
@@ -88,6 +109,7 @@ export const FileItem = memo(({
   onCancelRename,
   onStartRename,
   onMove,
+  onCustomizeFolder,
   onToggleSelection,
   onClick,
   onDoubleClick,
@@ -151,7 +173,7 @@ export const FileItem = memo(({
 
       <div className={cn("flex items-center gap-5", viewMode === 'grid' && "flex-col items-start mb-6")}>
         <div className="w-14 h-14 bg-surface rounded-2xl flex items-center justify-center shadow-sm group-hover:bg-primary-container/30 transition-colors shrink-0">
-          {getFileIcon(file.fileType, file.fileName)}
+          {getFileIcon(file.fileType, file.fileName, file.folderColor, file.folderIcon)}
         </div>
         <div className={cn("min-w-0 flex-1 w-full", viewMode === 'grid' && "pr-8")}>
           {editingFile === file.fileId ? (
@@ -231,6 +253,7 @@ export const FileItem = memo(({
                  {[
                    { icon: Edit2, label: 'Rename', action: () => { setIsMenuOpen(false); onStartRename(file); } },
                    { icon: FolderInput, label: 'Move to...', action: () => { setIsMenuOpen(false); onMove(file); } },
+                   ...(file.fileType === 'Folder' ? [{ icon: Palette, label: 'Customize', action: () => { setIsMenuOpen(false); onCustomizeFolder(file); } }] : []),
                    { icon: Download, label: 'Download', action: () => { setIsMenuOpen(false); onDownload(file); } },
                    { icon: Share2, label: 'Share Link', action: () => { setIsMenuOpen(false); onShare(file); } },
                    { icon: Info, label: 'Properties', action: () => { setIsMenuOpen(false); onInfoClick(file); } }

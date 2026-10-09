@@ -88,18 +88,25 @@ export const createFolder = async (userId: string, folderName: string, parentId:
   const folderId = `folder_${Date.now()}`;
   const folderRef = doc(db, 'users', userId, 'user_files', folderId);
 
-  await setDoc(folderRef, {
-    fileId: folderId,
-    fileName: folderName.trim(),
-    fileType: 'Folder',
-    fileSize: 0,
-    downloadUrl: '',
-    uploadTimestamp: serverTimestamp(),
-    ownerId: userId,
-    parentId,
-    isDeleted: false,
-    isStarred: false,
-  });
+  try {
+    await setDoc(folderRef, {
+      fileId: folderId,
+      fileName: folderName.trim(),
+      fileType: 'Folder',
+      fileSize: 0,
+      downloadUrl: '',
+      uploadTimestamp: serverTimestamp(),
+      ownerId: userId,
+      storagePath: `users/${userId}/folders/${folderId}`,
+      parentId,
+      isDeleted: false,
+      isStarred: false,
+    });
+    console.log(`[SYS] Folder created successfully: ${folderName}`);
+  } catch (err: any) {
+    console.error("[SYS] Create folder error:", err);
+    throw new Error(err.message || "Failed to create folder");
+  }
 
   return folderId;
 };
@@ -125,5 +132,16 @@ export const updateFileTags = async (userId: string, fileId: string, tags: strin
   const fileRef = doc(db, 'users', userId, 'user_files', fileId);
   await updateDoc(fileRef, {
     tags
+  });
+};
+
+/**
+ * Updates folder customization (color and icon).
+ */
+export const updateFolderCustomization = async (userId: string, fileId: string, color: string, icon: string) => {
+  const fileRef = doc(db, 'users', userId, 'user_files', fileId);
+  await updateDoc(fileRef, {
+    folderColor: color,
+    folderIcon: icon
   });
 };

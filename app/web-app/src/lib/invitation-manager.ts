@@ -100,12 +100,26 @@ export const acceptInvitation = async (
     acceptedAt: serverTimestamp()
   });
 
-  // Grant access to the file
+  // Grant access to the file on sender's record
   const fileRef = doc(db, 'users', invitation.senderId, 'user_files', invitation.fileId);
+  const fileSnap = await getDoc(fileRef);
+  const fileData = fileSnap.exists() ? fileSnap.data() : null;
+
   await updateDoc(fileRef, {
     sharedWithEmails: arrayUnion(recipientEmail.toLowerCase()),
     sharedWith: arrayUnion({ email: recipientEmail.toLowerCase(), role: 'viewer' })
   });
+
+  // Also store in recipient's shared_with_me collection for instant index-free access
+  if (fileData) {
+    const sharedRef = doc(db, 'users', recipientId, 'shared_with_me', invitation.fileId);
+    await setDoc(sharedRef, {
+      ...fileData,
+      isDeleted: false,
+      sharedBy: invitation.senderEmail,
+      acceptedAt: serverTimestamp()
+    });
+  }
 
   await logActivity(recipientId, 'SHARE', `Accepted invitation for ${invitation.fileName}`, invitation.fileName);
 };

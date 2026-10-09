@@ -37,6 +37,9 @@ import JSZip from 'jszip';
 import { FileItem } from './FileItem';
 import { BatchActionBar } from './BatchActionBar';
 import { InvitationItem } from './InvitationItem';
+import { OutgoingInvitationItem } from './OutgoingInvitationItem';
+import { FolderCustomizeModal } from './FolderCustomizeModal';
+import { CreateFolderModal } from './CreateFolderModal';
 
 const ShareFileModal = dynamic(() => import('./ShareFileModal').then(mod => mod.ShareFileModal));
 const MoveToFolderModal = dynamic(() => import('./MoveToFolderModal').then(mod => mod.MoveToFolderModal));
@@ -83,6 +86,9 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
   const [previewFile, setPreviewFile] = useState<FileEntry | null>(null);
   const [selectedFileIds, setSelectedFileIds] = useState<string[]>([]);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
+  const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
+  const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
+  const [selectedFolderForCustomize, setSelectedFolderForCustomize] = useState<FileEntry | null>(null);
 
   // Folder Lock State
   const [unlockedFolderIds, setUnlockedFolderIds] = useState<string[]>([]);
@@ -110,22 +116,17 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
       if (sharedSubFilter === 'invitations') {
         q = query(
           collection(db, 'invitations'),
-          where('recipientEmail', '==', user.email.toLowerCase()),
-          where('status', 'in', ['PENDING', 'REJECTED']),
-          orderBy('createdAt', 'desc')
+          where('recipientEmail', '==', user.email.toLowerCase())
         );
       } else if (sharedSubFilter === 'with_me') {
         q = query(
-          collectionGroup(db, 'user_files'),
-          where('sharedWithEmails', 'array-contains', user.email.toLowerCase()),
-          where('isDeleted', '==', false)
+          collection(db, 'users', user.uid, 'shared_with_me')
         );
       } else {
-        // "You shared" - Query invitations sent by the user
+        // "You shared" - Query user's own sent invitations
         q = query(
           collection(db, 'invitations'),
-          where('senderId', '==', user.uid),
-          orderBy('createdAt', 'desc')
+          where('senderId', '==', user.uid)
         );
       }
     } else if (filter === 'all' && currentFolderId === 'root' && !searchQuery) {
@@ -155,16 +156,20 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
       if (filter === 'shared' && (sharedSubFilter === 'invitations' || sharedSubFilter === 'by_me')) {
         let inviteDocs = snapshot.docs.map(doc => doc.data() as Invitation);
 
-        // Client-side cleanup for Rejected items older than 24 hours
         if (sharedSubFilter === 'invitations') {
-           const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
-           inviteDocs = inviteDocs.filter(inv => {
-              if (inv.status === 'REJECTED' && inv.rejectedAt?.seconds) {
-                 return (inv.rejectedAt.seconds * 1000) > oneDayAgo;
-              }
-              return true;
-           });
+          inviteDocs = inviteDocs.filter(inv => inv.status === 'PENDING' || inv.status === 'REJECTED');
+          // Client-side cleanup for Rejected items older than 24 hours
+          const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+          inviteDocs = inviteDocs.filter(inv => {
+             if (inv.status === 'REJECTED' && inv.rejectedAt?.seconds) {
+                return (inv.rejectedAt.seconds * 1000) > oneDayAgo;
+             }
+             return true;
+          });
         }
+
+        // Client-side sort by createdAt descending
+        inviteDocs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 
         setInvitations(inviteDocs);
         setIsLoading(false);
@@ -174,9 +179,8 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
 
       let docs = snapshot.docs.map(doc => doc.data() as FileEntry);
 
-      if (filter === 'shared' && sharedSubFilter === 'by_me') {
-        // Client-side filter for shared files
-        docs = docs.filter(f => f.isPubliclyShared || (f.sharedWithEmails && f.sharedWithEmails.length > 0));
+      if (filter === 'shared' && sharedSubFilter === 'with_me') {
+        docs = docs.filter(f => !f.isDeleted);
       }
 
       if (filter === 'all') {
@@ -204,17 +208,24 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
     }
 
     if (fileTypeFilter !== 'all') {
-      if (fileTypeFilter === 'Folder') {
-        docs = docs.filter(f => f.fileType === 'Folder');
-      } else if (fileTypeFilter === 'Image') {
-        docs = docs.filter(f => f.fileType === 'Image' || f.fileName.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i));
-      } else if (fileTypeFilter === 'Document') {
-        docs = docs.filter(f => f.fileType === 'Document' || f.fileType === 'PDF' || f.fileName.match(/\.(pdf|doc|docx|txt|xls|xlsx|ppt|pptx)$/i));
-      } else if (fileTypeFilter === 'Video') {
-        docs = docs.filter(f => f.fileType === 'Video' || f.fileName.match(/\.(mp4|webm|mov|mkv)$/i));
-      } else if (fileTypeFilter === 'Audio') {
-        docs = docs.filter(f => f.fileType === 'Audio' || f.fileName.match(/\.(mp3|wav|ogg|m4a)$/i));
-      }
+      const filterLower = fileTypeFilter.toLowerCase();
+      docs = docs.filter(f => {
+        const type = (f.fileType || '').toLowerCase();
+        const name = (f.fileName || '').toLowerCase();
+
+        if (filterLower === 'folder') {
+          return type === 'folder';
+        } else if (filterLower === 'image') {
+          return type === 'image' || /\.(jpg|jpeg|png|gif|webp|svg|avif|heic|bmp|tiff)$/.test(name);
+        } else if (filterLower === 'document') {
+          return ['document', 'pdf', 'archive', 'code', 'system', 'font'].includes(type) || /\.(pdf|doc|docx|txt|xls|xlsx|ppt|pptx|zip|rar|csv|rtf|epub)$/.test(name);
+        } else if (filterLower === 'video') {
+          return type === 'video' || /\.(mp4|webm|mov|mkv|avi|3gp|m4v)$/.test(name);
+        } else if (filterLower === 'audio') {
+          return type === 'audio' || /\.(mp3|wav|ogg|m4a|flac|aac)$/.test(name);
+        }
+        return true;
+      });
     }
 
     return docs.sort((a, b) => {
@@ -236,6 +247,31 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
       return 0;
     });
   }, [files, searchQuery, filter, fileTypeFilter, sortBy]);
+
+  const sortedInvitations = useMemo(() => {
+    let list = [...invitations];
+    if (fileTypeFilter !== 'all') {
+      const filterLower = fileTypeFilter.toLowerCase();
+      list = list.filter(inv => {
+        const type = (inv.fileType || '').toLowerCase();
+        const name = (inv.fileName || '').toLowerCase();
+
+        if (filterLower === 'folder') {
+          return type === 'folder';
+        } else if (filterLower === 'image') {
+          return type === 'image' || /\.(jpg|jpeg|png|gif|webp|svg|avif|heic|bmp|tiff)$/.test(name);
+        } else if (filterLower === 'document') {
+          return ['document', 'pdf', 'archive', 'code', 'system', 'font'].includes(type) || /\.(pdf|doc|docx|txt|xls|xlsx|ppt|pptx|zip|rar|csv|rtf|epub)$/.test(name);
+        } else if (filterLower === 'video') {
+          return type === 'video' || /\.(mp4|webm|mov|mkv|avi|3gp|m4v)$/.test(name);
+        } else if (filterLower === 'audio') {
+          return type === 'audio' || /\.(mp3|wav|ogg|m4a|flac|aac)$/.test(name);
+        }
+        return true;
+      });
+    }
+    return list;
+  }, [invitations, fileTypeFilter]);
 
   const uploadControllersRef = useRef<Record<string, AbortController>>({});
 
@@ -297,10 +333,12 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
     }
   }, [user, userMetadata, showToast, hideToast, currentFolderId]);
 
-  const handleCreateFolder = useCallback(async () => {
-    const folderName = prompt("Enter folder name:");
-    if (!folderName || !user) return;
+  const handleCreateFolder = useCallback(() => {
+    setIsCreateFolderModalOpen(true);
+  }, []);
 
+  const handleConfirmCreateFolder = useCallback(async (folderName: string) => {
+    if (!user) return;
     const toastId = showToast('Creating folder...', 'loading');
     try {
       await createFolder(user.uid, folderName, currentFolderId);
@@ -588,6 +626,22 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
         />
       )}
 
+      {isCustomizeModalOpen && (
+        <FolderCustomizeModal
+          isOpen={isCustomizeModalOpen}
+          onClose={() => setIsCustomizeModalOpen(false)}
+          folder={selectedFolderForCustomize}
+        />
+      )}
+
+      {isCreateFolderModalOpen && (
+        <CreateFolderModal
+          isOpen={isCreateFolderModalOpen}
+          onClose={() => setIsCreateFolderModalOpen(false)}
+          onCreate={handleConfirmCreateFolder}
+        />
+      )}
+
       <BatchActionBar
         selectedCount={selectedFileIds.length}
         onClearSelection={() => setSelectedFileIds([])}
@@ -815,7 +869,7 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
                 </div>
               ) : filter === 'shared' && sharedSubFilter === 'invitations' ? (
                 <div className="space-y-6">
-                   {invitations.length === 0 ? (
+                   {sortedInvitations.length === 0 ? (
                       <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-16 bg-surface-variant/10 border-2 border-dashed border-outline/10 rounded-[3rem]">
                         <div className="w-24 h-24 bg-primary-container text-primary rounded-[2rem] flex items-center justify-center mb-8 shadow-inner">
                            <Plus size={48} />
@@ -824,44 +878,18 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
                         <p className="text-on-surface-variant font-medium max-w-sm mx-auto leading-relaxed">Secure file transfer invitations will appear here for your verification.</p>
                       </div>
                    ) : (
-                      invitations.map(invite => <InvitationItem key={invite.id} invitation={invite} />)
+                      sortedInvitations.map(invite => <InvitationItem key={invite.id} invitation={invite} />)
                    )}
                 </div>
               ) : filter === 'shared' && sharedSubFilter === 'by_me' ? (
                 <div className="space-y-4">
-                   <h3 className="text-[10px] font-black text-outline uppercase tracking-[0.3em] mb-6 px-1">Outgoing Transmission Logs</h3>
-                   {invitations.length === 0 ? (
-                      <div className="p-16 text-center opacity-40 italic font-medium">No outgoing shares logged.</div>
+                   <h3 className="text-[10px] font-black text-outline uppercase tracking-[0.3em] mb-6 px-1">Outgoing Transmission Logs & Invitations</h3>
+                   {sortedInvitations.length === 0 ? (
+                      <div className="p-16 text-center opacity-40 italic font-medium">No outgoing shares or invitations logged.</div>
                    ) : (
-                     invitations.map(invite => (
-                       <div key={invite.id} className="bg-surface-variant/20 border border-outline/5 p-6 rounded-[2rem] flex items-center justify-between group hover:bg-surface-variant/40 transition-colors">
-                          <div className="flex items-center gap-5">
-                             <div className="w-12 h-12 bg-surface rounded-2xl flex items-center justify-center shadow-sm">
-                                <File size={24} className="text-primary" />
-                             </div>
-                             <div>
-                                <p className="font-black text-on-surface text-sm truncate max-w-xs">{invite.fileName}</p>
-                                <div className="flex items-center gap-3 mt-1">
-                                   <span className="text-[10px] font-bold text-outline">To: {invite.recipientEmail || invite.recipientPhone}</span>
-                                   <span className="w-1 h-1 bg-outline/20 rounded-full" />
-                                   <span className={cn(
-                                     "text-[10px] font-black uppercase tracking-widest",
-                                     invite.status === 'PENDING' ? "text-amber-500" :
-                                     invite.status === 'ACCEPTED' ? "text-emerald-500" : "text-error"
-                                   )}>
-                                     {invite.status === 'PENDING' ? 'Pending Acceptance' :
-                                      invite.status === 'REJECTED' ? 'Invitation Declined' : 'Active Access'}
-                                   </span>
-                                </div>
-                             </div>
-                          </div>
-                          {invite.status === 'PENDING' && (
-                             <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <span className="text-[10px] font-black text-outline uppercase tracking-tighter">Waiting for node response...</span>
-                             </div>
-                          )}
-                       </div>
-                     ))
+                     sortedInvitations.map(invite => (
+                       <OutgoingInvitationItem key={invite.id} invitation={invite} />
+                   ))
                    )}
                 </div>
               ) : files.length === 0 && !isDragActive ? (
@@ -897,6 +925,7 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
                       onCancelRename={() => setEditingFile(null)}
                       onStartRename={(f) => { setEditingFile(f.fileId); setNewName(f.fileName); }}
                       onMove={(f) => { setSelectedFileIds([f.fileId]); setIsMoveModalOpen(true); }}
+                      onCustomizeFolder={(f) => { setSelectedFolderForCustomize(f); setIsCustomizeModalOpen(true); }}
                       onToggleSelection={toggleSelection}
                       onClick={(e) => handleFileClick(e, file)}
                       onDoubleClick={() => {}}

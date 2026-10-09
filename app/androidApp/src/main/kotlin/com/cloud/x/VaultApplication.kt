@@ -7,11 +7,15 @@ import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import coil3.video.VideoFrameDecoder
+import com.google.firebase.FirebaseApp
 
 class VaultApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         try {
+            // Initialize Firebase App explicitly
+            FirebaseApp.initializeApp(this)
+
             // Initialize Facebook SDK
             AppEventsLogger.activateApp(this)
             

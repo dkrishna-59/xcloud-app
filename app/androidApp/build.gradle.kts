@@ -8,6 +8,28 @@ plugins {
     alias(libs.plugins.firebaseCrashlytics)
 }
 
+fun getGitCommitCount(): Int {
+    return try {
+        val process = ProcessBuilder("git", "rev-list", "--count", "HEAD").redirectErrorStream(true).start()
+        val output = process.inputStream.bufferedReader().readText().trim()
+        process.waitFor()
+        output.toInt()
+    } catch (_: Exception) {
+        1
+    }
+}
+
+fun getGitVersionName(): String {
+    return try {
+        val process = ProcessBuilder("git", "describe", "--tags", "--always").redirectErrorStream(true).start()
+        val output = process.inputStream.bufferedReader().readText().trim()
+        process.waitFor()
+        if (output.isNotEmpty()) output else "1.0.0"
+    } catch (_: Exception) {
+        "1.0.0"
+    }
+}
+
 android {
     namespace = "com.cloud.x"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -16,8 +38,8 @@ android {
         applicationId = "com.cloud.x"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 4
-        versionName = "1.3.0"
+        versionCode = getGitCommitCount()
+        versionName = getGitVersionName()
     }
 
     sourceSets {
