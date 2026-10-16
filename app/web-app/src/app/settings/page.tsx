@@ -30,7 +30,9 @@ import {
   AlertTriangle,
   Unlock,
   Cpu,
-  Monitor
+  Monitor,
+  KeyRound,
+  ShieldCheck
 } from 'lucide-react';
 
 import { formatFileSize, cn } from '@/lib/utils';
@@ -39,6 +41,7 @@ import { doc, updateDoc, collection, addDoc, deleteDoc, onSnapshot, query } from
 import { db, auth } from '@/lib/firebase';
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential, sendPasswordResetEmail } from 'firebase/auth';
 import { GoogleDriveBackupSettings } from '@/components/dashboard/GoogleDriveBackupSettings';
+import { registerPasskey, isPasskeySupported } from '@/lib/webauthnService';
 import { motion, AnimatePresence } from 'framer-motion';
 import pkg from '../../../package.json';
 
@@ -68,6 +71,54 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<'general' | 'devices' | 'connected'>('general');
   const [currentNodeInfo, setCurrentNodeInfo] = useState({ ip: 'Detecting...', location: 'Locating...', browser: 'Detecting...' });
   const [devices, setDevices] = useState<any[]>([]);
+  const [passkeys, setPasskeys] = useState<any[]>([]);
+  const [isRegisteringPasskey, setIsRegisteringPasskey] = useState(false);
+
+  React.useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, 'users', user.uid, 'passkeys'));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setPasskeys(list);
+    });
+    return () => unsub();
+  }, [user]);
+
+  const handleRegisterPasskey = async () => {
+    if (!user) return;
+    if (!isPasskeySupported()) {
+      showToast("Passkeys are not supported in this browser.", "error");
+      return;
+    }
+
+    setIsRegisteringPasskey(true);
+    const toastId = showToast("Registering new passkey...", "loading");
+    try {
+      await registerPasskey(user.uid, user.email || 'user@xcloud.app', user.displayName || 'XCloud User');
+      hideToast(toastId);
+      showToast("Passkey registered successfully", "success");
+    } catch (err: any) {
+      hideToast(toastId);
+      showToast(err.message || "Passkey registration failed", "error");
+    } finally {
+      setIsRegisteringPasskey(false);
+    }
+  };
+
+  const handleDeletePasskey = async (passkeyId: string) => {
+    if (!user) return;
+    if (confirm("Revoke this passkey? You will no longer be able to use it to sign in.")) {
+      const toastId = showToast("Revoking passkey...", "loading");
+      try {
+        await deleteDoc(doc(db, 'users', user.uid, 'passkeys', passkeyId));
+        hideToast(toastId);
+        showToast("Passkey revoked successfully", "success");
+      } catch (err: any) {
+        hideToast(toastId);
+        showToast(err.message, "error");
+      }
+    }
+  };
 
   React.useEffect(() => {
     if (!user) return;
@@ -919,6 +970,57 @@ export default function SettingsPage() {
             <h2 className="text-headline-small font-black text-on-surface">Connected Accounts & Google Drive</h2>
             <p className="text-body-medium text-on-surface-variant font-medium">Configure your Google OAuth2 API credentials and manage automated cloud backups to Google Drive.</p>
             <GoogleDriveBackupSettings />
+          </div>
+
+          {/* Passkeys Management Section */}
+          <div className="bg-surface-variant/10 border border-outline/5 rounded-[3rem] p-10 shadow-sm space-y-6 text-white">
+            <div className="flex items-center justify-between border-b border-white/5 pb-6">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-indigo-500/20 text-indigo-400 rounded-2xl flex items-center justify-center">
+                  <KeyRound size={28} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black tracking-tight">FIDO2 / WebAuthn Passkeys</h3>
+                  <p className="text-xs text-white/50">Manage passwordless biometric or hardware security key passkeys.</p>
+                </div>
+              </div>
+
+              <button
+                onClick={handleRegisterPasskey}
+                disabled={isRegisteringPasskey}
+                className="px-6 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl text-xs uppercase tracking-widest transition-all flex items-center gap-2 disabled:opacity-50"
+              >
+                {isRegisteringPasskey ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
+                Register New Passkey
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-white/60">Registered Passkey Devices</h4>
+              {passkeys.length === 0 ? (
+                <div className="p-12 text-center bg-white/5 rounded-2xl text-white/40 text-xs italic">No passkeys registered yet. Create one for instant passwordless login.</div>
+              ) : (
+                passkeys.map(pk => (
+                  <div key={pk.id} className="bg-white/5 p-5 rounded-2xl flex items-center justify-between border border-white/5">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-indigo-500/20 text-indigo-400 rounded-xl flex items-center justify-center">
+                        <KeyRound size={20} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold">{pk.deviceInfo || 'WebAuthn Authenticator'}</p>
+                        <p className="text-[10px] text-white/40 uppercase tracking-wider">ID: {pk.credentialId.substring(0, 16)}...</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleDeletePasskey(pk.id)}
+                      className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl text-xs font-bold transition-all"
+                    >
+                      Revoke
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       )}
