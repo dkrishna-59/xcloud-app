@@ -1007,7 +1007,13 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
                       onCustomizeFolder={(f) => { setSelectedFolderForCustomize(f); setIsCustomizeModalOpen(true); }}
                       onToggleSelection={toggleSelection}
                       onClick={(e) => handleFileClick(e, file)}
-                      onDoubleClick={() => {}}
+                      onDoubleClick={() => {
+                        if (file.fileType === 'Folder') {
+                          navigateToFolder(file);
+                        } else {
+                          setPreviewFile(file);
+                        }
+                      }}
                       onInfoClick={(file) => setSelectedFileForInfo(file)}
                       onToggleStar={toggleStar}
                       onDownload={handleDownload}
