@@ -12,6 +12,7 @@ import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'fi
 import { VaultAuthModal } from '@/components/dashboard/VaultAuthModal';
 import { formatFileSize, cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { registerPasskey, isPasskeySupported } from '@/lib/webauthnService';
 
 interface VaultFileItem {
   fileId: string;
@@ -32,6 +33,28 @@ export default function VaultPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [decryptingFileId, setDecryptingFileId] = useState<string | null>(null);
+  const [isRegisteringPasskey, setIsRegisteringPasskey] = useState(false);
+
+  const handleRegisterPasskey = async () => {
+    if (!user) return;
+    if (!isPasskeySupported()) {
+      showToast("Passkeys are not supported in this browser.", "error");
+      return;
+    }
+
+    setIsRegisteringPasskey(true);
+    const toastId = showToast("Registering biometric passkey...", "loading");
+    try {
+      await registerPasskey(user.uid, user.email || 'user@xcloud.app', user.displayName || 'XCloud User');
+      hideToast(toastId);
+      showToast("Passkey successfully registered!", "success");
+    } catch (err: any) {
+      hideToast(toastId);
+      showToast(err.message || "Passkey registration failed", "error");
+    } finally {
+      setIsRegisteringPasskey(false);
+    }
+  };
 
   useEffect(() => {
     if (!user || !isUnlocked) {
@@ -202,6 +225,28 @@ export default function VaultPage() {
             Lock Vault Now
           </button>
         </div>
+      </div>
+
+      {/* Passkey Security Card */}
+      <div className="bg-white/[0.03] border border-white/10 rounded-[2.5rem] p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm text-white">
+        <div className="flex items-center gap-5">
+          <div className="w-14 h-14 bg-indigo-500/20 text-indigo-400 rounded-2xl flex items-center justify-center">
+            <KeyRound size={28} />
+          </div>
+          <div>
+            <h3 className="text-base font-black tracking-tight">FIDO2 / WebAuthn Passkey Security</h3>
+            <p className="text-xs text-white/50">Register biometric or hardware security key passkeys for passwordless vault access.</p>
+          </div>
+        </div>
+
+        <button
+          onClick={handleRegisterPasskey}
+          disabled={isRegisteringPasskey}
+          className="px-6 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl text-xs uppercase tracking-widest transition-all flex items-center gap-2 disabled:opacity-50 shrink-0"
+        >
+          {isRegisteringPasskey ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
+          Register Passkey
+        </button>
       </div>
 
       {/* Files List */}

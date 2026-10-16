@@ -47,6 +47,8 @@ service cloud.firestore {
       match /devices/{id} { allow read, write: if isSignedIn() && request.auth.uid == userId; }
       match /folder_sync_rules/{id} { allow read, write: if isSignedIn() && request.auth.uid == userId; }
       match /backup_logs/{id} { allow read, write: if isSignedIn() && request.auth.uid == userId; }
+      match /passkeys/{passkeyId} { allow read, write: if isSignedIn() && request.auth.uid == userId; }
+      match /passkey_sessions/{sessionId} { allow read, write: if isSignedIn() && request.auth.uid == userId; }
 
       match /{allSubcollections=**} {
         allow read, write: if isSignedIn() && request.auth.uid == userId;
@@ -66,6 +68,10 @@ service cloud.firestore {
         resource.data.get('isPublic', false) == true ||
         resource.data.get('isPubliclyShared', false) == true
       );
+    }
+
+    match /{path=**}/passkeys/{passkeyId} {
+      allow read: if isSignedIn();
     }
 
     match /{document=**} {
