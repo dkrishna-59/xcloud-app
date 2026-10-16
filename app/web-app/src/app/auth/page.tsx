@@ -33,37 +33,24 @@ export default function AuthPage() {
     setError(null);
     try {
       const result = await signInWithPopup(auth, provider);
-      const additionalInfo = getAdditionalUserInfo(result);
 
-      if (additionalInfo?.profile) {
-        const profile = additionalInfo.profile as any;
-        console.log("[AUTH] Provider Profile Data:", profile);
+      try {
+        const additionalInfo = getAdditionalUserInfo(result);
+        if (additionalInfo?.profile) {
+          const profile = additionalInfo.profile as any;
+          const updates: any = {};
+          const bday = profile.birthday || profile.birthdate || profile.user_birthday;
+          if (bday) updates.dateOfBirth = bday;
+          const phone = profile.phone_number || profile.phoneNumber || profile.phone || result.user.phoneNumber;
+          if (phone) updates.phoneNumber = phone;
 
-        // Extract Birthday and Phone if provided by the OAuth token
-        const updates: any = {};
-
-        // Comprehensive extraction from various providers
-        const bday = profile.birthday || profile.birthdate || profile.user_birthday;
-        if (bday) updates.dateOfBirth = bday;
-
-        const phone = profile.phone_number || profile.phoneNumber || profile.phone || result.user.phoneNumber;
-        if (phone) updates.phoneNumber = phone;
-
-        // Also check providerData as a fallback
-        if (!updates.phoneNumber && result.user.providerData) {
-          for (const provider of result.user.providerData) {
-            if (provider.phoneNumber) {
-              updates.phoneNumber = provider.phoneNumber;
-              break;
-            }
+          if (Object.keys(updates).length > 0) {
+            const userRef = doc(db, 'users', result.user.uid);
+            await setDoc(userRef, updates, { merge: true });
           }
         }
-
-        if (Object.keys(updates).length > 0) {
-          console.log("[AUTH] Saving extracted identity data:", updates);
-          const userRef = doc(db, 'users', result.user.uid);
-          await setDoc(userRef, updates, { merge: true });
-        }
+      } catch (profileErr) {
+        console.warn("[AUTH] Optional profile extension sync warning:", profileErr);
       }
     } catch (err: any) {
       console.error("[AUTH] Social Login Error:", err);

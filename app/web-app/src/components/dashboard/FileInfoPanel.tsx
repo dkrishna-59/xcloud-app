@@ -29,8 +29,7 @@ import {
   Tag
 } from 'lucide-react';
 import { FileEntry } from '@/lib/upload-manager';
-import { formatFileSize, cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { formatFileSize, cn, formatTimestamp } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
 import { updateFileTags } from '@/lib/file-manager';
 
@@ -197,7 +196,7 @@ export const FileInfoPanel = ({
 
                      {[
                        { icon: HardDrive, label: 'Size', value: formatFileSize(file.fileSize), color: 'primary' },
-                       { icon: Clock, label: 'Added', value: file.uploadTimestamp?.seconds ? format(file.uploadTimestamp.seconds * 1000, 'MMM d, yyyy HH:mm') : 'Recently', color: 'tertiary' }
+                       { icon: Clock, label: 'Added', value: formatTimestamp(file.uploadTimestamp, 'MMM d, yyyy HH:mm'), color: 'tertiary' }
                      ].map((prop, i) => (
                        <div key={i} className="flex gap-5 items-center">
                           <div className={cn(

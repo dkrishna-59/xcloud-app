@@ -100,26 +100,33 @@ export const acceptInvitation = async (
     acceptedAt: serverTimestamp()
   });
 
-  // Grant access to the file on sender's record
-  const fileRef = doc(db, 'users', invitation.senderId, 'user_files', invitation.fileId);
-  const fileSnap = await getDoc(fileRef);
-  const fileData = fileSnap.exists() ? fileSnap.data() : null;
-
-  await updateDoc(fileRef, {
-    sharedWithEmails: arrayUnion(recipientEmail.toLowerCase()),
-    sharedWith: arrayUnion({ email: recipientEmail.toLowerCase(), role: 'viewer' })
-  });
-
-  // Also store in recipient's shared_with_me collection for instant index-free access
-  if (fileData) {
-    const sharedRef = doc(db, 'users', recipientId, 'shared_with_me', invitation.fileId);
-    await setDoc(sharedRef, {
-      ...fileData,
-      isDeleted: false,
-      sharedBy: invitation.senderEmail,
-      acceptedAt: serverTimestamp()
+  // Grant access to the file on sender's record (best effort)
+  try {
+    const fileRef = doc(db, 'users', invitation.senderId, 'user_files', invitation.fileId);
+    await updateDoc(fileRef, {
+      sharedWithEmails: arrayUnion(recipientEmail.toLowerCase()),
+      sharedWith: arrayUnion({ email: recipientEmail.toLowerCase(), role: 'viewer' })
     });
+  } catch (e) {
+    console.error("Sender file update note:", e);
   }
+
+  // Store directly in recipient's shared_with_me collection using invitation data (zero permission issues)
+  const sharedRef = doc(db, 'users', recipientId, 'shared_with_me', invitation.fileId);
+  await setDoc(sharedRef, {
+    fileId: invitation.fileId,
+    fileName: invitation.fileName,
+    fileType: invitation.fileType,
+    fileSize: invitation.fileSize,
+    downloadUrl: invitation.downloadUrl,
+    storagePath: invitation.storagePath,
+    ownerId: invitation.senderId,
+    parentId: 'root',
+    isDeleted: false,
+    isStarred: false,
+    sharedBy: invitation.senderEmail,
+    acceptedAt: serverTimestamp()
+  });
 
   await logActivity(recipientId, 'SHARE', `Accepted invitation for ${invitation.fileName}`, invitation.fileName);
 };

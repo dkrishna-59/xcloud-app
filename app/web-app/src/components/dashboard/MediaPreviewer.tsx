@@ -45,7 +45,11 @@ export const MediaPreviewer = ({ file, isOpen, onClose }: MediaPreviewerProps) =
       setTextContent(null);
       setIsCopied(false);
 
-      if (file.fileType === 'Text' || file.fileType === 'Code') {
+      const fileType = (file.fileType || '').toLowerCase();
+      const ext = file.fileName.split('.').pop()?.toLowerCase() || '';
+      const isTextType = (['text', 'code', 'document', 'system'].includes(fileType) || ['txt', 'md', 'json', 'js', 'ts', 'py', 'html', 'css', 'csv', 'xml', 'log'].includes(ext)) && ext !== 'pdf' && fileType !== 'pdf';
+
+      if (isTextType) {
         fetch(file.downloadUrl)
           .then(res => {
             if (!res.ok) throw new Error("Network response was not ok");
@@ -57,24 +61,26 @@ export const MediaPreviewer = ({ file, isOpen, onClose }: MediaPreviewerProps) =
           })
           .catch(err => {
             console.error("Failed to fetch text content:", err);
-            setTextContent("Error: Could not load text content. The file might be too large or restricted by CORS.");
+            setTextContent("Preview available via download. (CORS restricted)");
             setIsLoading(false);
           });
+      } else {
+        const timer = setTimeout(() => setIsLoading(false), 600);
+        return () => clearTimeout(timer);
       }
     }
   }, [isOpen, file]);
 
   if (!file) return null;
 
-  const browserSupportedImages = ['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif', 'svg', 'bmp', 'ico'];
+  const fileType = (file.fileType || '').toLowerCase();
   const ext = file.fileName.split('.').pop()?.toLowerCase() || '';
 
-  const isImage = file.fileType === 'Image';
-  const isBrowserImage = isImage && browserSupportedImages.includes(ext);
-  const isVideo = file.fileType === 'Video';
-  const isPDF = file.fileType === 'PDF';
-  const isAudio = file.fileType === 'Audio';
-  const isText = file.fileType === 'Text' || file.fileType === 'Code';
+  const isImage = fileType === 'image' || ['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif', 'svg', 'bmp', 'ico'].includes(ext);
+  const isVideo = fileType === 'video' || ['mp4', 'webm', 'mov', 'mkv', 'avi', '3gp', 'm4v'].includes(ext);
+  const isAudio = fileType === 'audio' || ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac'].includes(ext);
+  const isPDF = fileType === 'pdf' || ext === 'pdf' || fileType === 'document';
+  const isText = (['text', 'code', 'document', 'system'].includes(fileType) || ['txt', 'md', 'json', 'js', 'ts', 'py', 'html', 'css', 'csv', 'xml', 'log', 'yaml', 'yml'].includes(ext)) && !isPDF;
 
   const handleDownload = () => {
     const link = document.createElement('a');
@@ -127,7 +133,7 @@ export const MediaPreviewer = ({ file, isOpen, onClose }: MediaPreviewerProps) =
             </div>
 
             <div className="flex items-center gap-3">
-              {isBrowserImage && (
+              {isImage && (
                 <>
                   <div className="flex items-center bg-surface-variant/30 rounded-2xl p-1.5 border border-outline/5">
                     <button onClick={() => setZoom(prev => Math.max(0.5, prev - 0.25))} className="p-2 text-on-surface-variant hover:bg-surface-variant rounded-xl transition-all"><ZoomOut size={20} /></button>
@@ -185,7 +191,7 @@ export const MediaPreviewer = ({ file, isOpen, onClose }: MediaPreviewerProps) =
              >
                 {isVideo ? (
                   <VideoPlayer file={file} onClose={onClose} />
-                ) : isBrowserImage ? (
+                ) : isImage ? (
                   <motion.img
                     src={file.downloadUrl}
                     alt={file.fileName}
@@ -196,40 +202,15 @@ export const MediaPreviewer = ({ file, isOpen, onClose }: MediaPreviewerProps) =
                     }}
                     className="max-w-full max-h-full object-contain rounded-3xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.4)] border border-outline/10 transition-transform duration-200"
                   />
-                ) : isImage ? (
-                  <div className="bg-surface-variant/20 backdrop-blur-xl p-24 rounded-[4rem] border border-outline/10 text-center space-y-6 shadow-2xl max-w-lg">
-                    <div className="w-32 h-32 bg-primary-container text-primary rounded-[2.5rem] flex items-center justify-center mx-auto shadow-inner border border-primary/10">
-                       <ImageIcon size={64} />
-                    </div>
-                    <div className="space-y-2">
-                       <h3 className="text-on-surface text-2xl font-black tracking-tight">Pro Image Format</h3>
-                       <p className="text-on-surface-variant font-medium text-sm leading-relaxed">
-                         This specialized {ext.toUpperCase()} node requires local professional tools for rendering.
-                         Protocol: Secure Download & Process.
-                       </p>
-                    </div>
-                    <button
-                      onClick={handleDownload}
-                      className="px-10 py-4 bg-primary text-on-primary font-black rounded-3xl transition-all hover:shadow-xl shadow-primary/20 active:scale-95 uppercase tracking-widest text-xs"
-                    >
-                       Acquire Full Asset
-                    </button>
-                  </div>
-                ) : null}
-
-                {isAudio && (
+                ) : isAudio ? (
                   <AudioPlayer file={file} onClose={onClose} />
-                )}
-
-                {isPDF && (
+                ) : isPDF ? (
                   <iframe
                     src={file.downloadUrl}
                     onLoad={() => setIsLoading(false)}
                     className="w-[85vw] h-[75vh] rounded-[2rem] bg-white shadow-2xl border-8 border-surface-variant/30"
                   />
-                )}
-
-                {isText && (
+                ) : isText ? (
                   <div className="w-[80vw] max-w-4xl h-[70vh] bg-surface rounded-[2rem] border border-outline/10 shadow-2xl overflow-hidden flex flex-col">
                      <div className="p-4 bg-surface-variant/30 border-b border-outline/5 flex items-center justify-between">
                         <span className="text-[10px] font-black uppercase tracking-widest text-outline">Raw Content View ({textContent ? textContent.split('\n').length : 0} lines)</span>
@@ -238,9 +219,7 @@ export const MediaPreviewer = ({ file, isOpen, onClose }: MediaPreviewerProps) =
                         {textContent || 'Loading content...'}
                      </pre>
                   </div>
-                )}
-
-                {!isImage && !isVideo && !isPDF && !isAudio && !isText && (
+                ) : (
                   <div className="bg-surface-variant/20 backdrop-blur-xl p-24 rounded-[4rem] border border-outline/10 text-center space-y-6 shadow-2xl max-w-lg">
                      <div className="w-32 h-32 bg-primary-container text-primary rounded-[2.5rem] flex items-center justify-center mx-auto shadow-inner border border-primary/10">
                         <Maximize2 size={64} />

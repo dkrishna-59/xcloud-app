@@ -8,10 +8,9 @@ import { useSearch } from '@/context/search-context';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Activity, markAllAsRead } from '@/lib/activity-manager';
-import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { cn } from '@/lib/utils';
+import { cn, formatTimestamp } from '@/lib/utils';
 
 export const Header = () => {
   const { user, userMetadata, logout, theme, resolvedTheme, setTheme, toggleTheme } = useAuth();
@@ -74,8 +73,11 @@ export const Header = () => {
             placeholder="Search your secure cloud..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-surface-variant/40 text-on-surface border-none rounded-full py-3.5 pl-14 pr-6 focus:ring-2 focus:ring-primary/20 focus:bg-surface-variant transition-all outline-none text-sm font-medium truncate"
+            className="w-full bg-surface-variant/40 text-on-surface border-none rounded-full py-3.5 pl-14 pr-20 focus:ring-2 focus:ring-primary/20 focus:bg-surface-variant transition-all outline-none text-sm font-medium truncate"
           />
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-surface-variant/60 px-2.5 py-1 rounded-full text-[10px] font-mono text-on-surface-variant pointer-events-none">
+            <span>⌘</span>K
+          </div>
         </div>
       </div>
 
@@ -135,7 +137,7 @@ export const Header = () => {
                               </p>
                               <p className="text-xs text-on-surface-variant line-clamp-1 font-medium">{activity.details}</p>
                               <p className="text-[10px] text-outline mt-1.5 font-bold uppercase tracking-wider">
-                                 {activity.timestamp?.seconds ? format(activity.timestamp.seconds * 1000, 'MMM d, HH:mm') : 'Just now'}
+                                 {formatTimestamp(activity.timestamp, 'MMM d, HH:mm')}
                               </p>
                            </div>
                            {!activity.isRead && <div className="w-2 h-2 bg-primary rounded-full mt-2 shrink-0" />}

@@ -38,6 +38,7 @@ import { uploadAvatar } from '@/lib/profile-manager';
 import { doc, updateDoc, collection, addDoc, deleteDoc, onSnapshot, query } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential, sendPasswordResetEmail } from 'firebase/auth';
+import { GoogleDriveBackupSettings } from '@/components/dashboard/GoogleDriveBackupSettings';
 import { motion, AnimatePresence } from 'framer-motion';
 import pkg from '../../../package.json';
 
@@ -64,7 +65,7 @@ export default function SettingsPage() {
   const [newPasscode, setNewPasscode] = useState('');
   const [confirmPasscode, setConfirmPasscode] = useState('');
 
-  const [activeTab, setActiveTab] = useState<'general' | 'devices'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'devices' | 'connected'>('general');
   const [currentNodeInfo, setCurrentNodeInfo] = useState({ ip: 'Detecting...', location: 'Locating...', browser: 'Detecting...' });
   const [devices, setDevices] = useState<any[]>([]);
 
@@ -537,6 +538,15 @@ export default function SettingsPage() {
            >
              Devices
            </button>
+           <button
+             onClick={() => setActiveTab('connected')}
+             className={cn(
+               "px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+               activeTab === 'connected' ? "bg-primary text-on-primary shadow-lg" : "text-on-surface-variant hover:bg-surface-variant/50"
+             )}
+           >
+             Connected Accounts
+           </button>
         </div>
       </header>
 
@@ -644,6 +654,9 @@ export default function SettingsPage() {
             </div>
           </div>
         </section>
+
+        {/* Google Drive Connected Backup */}
+        <GoogleDriveBackupSettings />
 
         {/* Preferences Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -807,7 +820,7 @@ export default function SettingsPage() {
            </p>
         </div>
       </div>
-    ) : (
+    ) : activeTab === 'devices' ? (
       <div className="space-y-8 pb-20">
            <section className="bg-surface-variant/10 border border-outline/5 rounded-[3rem] p-10 shadow-sm relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-32 -mt-32" />
@@ -899,6 +912,14 @@ export default function SettingsPage() {
                  </p>
               </div>
            </div>
+        </div>
+      ) : (
+        <div className="space-y-8 pb-20">
+          <div className="bg-surface-variant/10 border border-outline/5 rounded-[3rem] p-10 shadow-sm space-y-6">
+            <h2 className="text-headline-small font-black text-on-surface">Connected Accounts & Google Drive</h2>
+            <p className="text-body-medium text-on-surface-variant font-medium">Configure your Google OAuth2 API credentials and manage automated cloud backups to Google Drive.</p>
+            <GoogleDriveBackupSettings />
+          </div>
         </div>
       )}
     </div>

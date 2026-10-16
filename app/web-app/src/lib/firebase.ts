@@ -38,9 +38,11 @@ export const db = app
 export const storage = app ? getStorage(app) : null as any;
 
 const googleProvider = new GoogleAuthProvider();
-// Explicitly using full userinfo URLs for maximum reliability.
+// Explicitly using full userinfo URLs for maximum reliability plus Google Drive scopes.
 googleProvider.addScope('https://www.googleapis.com/auth/userinfo.profile');
 googleProvider.addScope('https://www.googleapis.com/auth/userinfo.email');
+googleProvider.addScope('https://www.googleapis.com/auth/drive.readonly');
+googleProvider.addScope('https://www.googleapis.com/auth/drive.file');
 googleProvider.addScope('openid');
 
 const facebookProvider = new FacebookAuthProvider();

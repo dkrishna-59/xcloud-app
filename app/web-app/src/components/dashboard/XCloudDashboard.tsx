@@ -20,12 +20,13 @@ import {
   MoreHorizontal,
   Ban,
   Globe,
-  X
+  X,
+  CloudDownload
 } from 'lucide-react';
 import { moveToTrash } from '@/lib/trash-manager';
 import { updateFileName, createFolder, updateLastOpened } from '@/lib/file-manager';
 import { generatePublicShareLink } from '@/lib/share-manager';
-import { collection, query, where, onSnapshot, doc, updateDoc, collectionGroup, writeBatch, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, updateDoc, setDoc, getDoc, getDocs, collectionGroup, writeBatch, orderBy, limit, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { uploadFile, FileEntry } from '@/lib/upload-manager';
 import { Invitation } from '@/lib/invitation-manager';
@@ -40,6 +41,11 @@ import { InvitationItem } from './InvitationItem';
 import { OutgoingInvitationItem } from './OutgoingInvitationItem';
 import { FolderCustomizeModal } from './FolderCustomizeModal';
 import { CreateFolderModal } from './CreateFolderModal';
+import { VersionHistoryModal } from './VersionHistoryModal';
+import { CodeEditorModal } from './CodeEditorModal';
+import { GlobalSearchModal } from './GlobalSearchModal';
+import { GoogleDriveImportModal } from './GoogleDriveImportModal';
+import { ExportToDriveModal } from './ExportToDriveModal';
 
 const ShareFileModal = dynamic(() => import('./ShareFileModal').then(mod => mod.ShareFileModal));
 const MoveToFolderModal = dynamic(() => import('./MoveToFolderModal').then(mod => mod.MoveToFolderModal));
@@ -99,9 +105,71 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
   // Shared View Sub-Filter
   const [sharedSubFilter, setSharedSubFilter] = useState<'with_me' | 'by_me' | 'invitations'>('with_me');
 
+  // Modals state for Version History, Code Editor, Global Search
+  const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
+  const [fileForVersionHistory, setFileForVersionHistory] = useState<FileEntry | null>(null);
+
+  const [isCodeEditorOpen, setIsCodeEditorOpen] = useState(false);
+  const [fileForCodeEditor, setFileForCodeEditor] = useState<FileEntry | null>(null);
+
+  const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(false);
+  const [isGoogleDriveImportOpen, setIsGoogleDriveImportOpen] = useState(false);
+  const [isExportToDriveOpen, setIsExportToDriveOpen] = useState(false);
+  const [filesForExport, setFilesForExport] = useState<FileEntry[]>([]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsGlobalSearchOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // File Type & Sort Filters
   const [fileTypeFilter, setFileTypeFilter] = useState<'all' | 'Folder' | 'Image' | 'Document' | 'Video' | 'Audio'>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name-asc' | 'name-desc' | 'size-desc'>('newest');
+
+  // Auto-sync accepted invitations into shared_with_me collection
+  useEffect(() => {
+    if (!user || !user.email) return;
+    const syncAcceptedInvitations = async () => {
+      try {
+        const qInv = query(
+          collection(db, 'invitations'),
+          where('recipientEmail', '==', user.email!.toLowerCase()),
+          where('status', '==', 'ACCEPTED')
+        );
+        const snap = await getDocs(qInv);
+        for (const docSnap of snap.docs) {
+          const inv = docSnap.data() as Invitation;
+          const sharedRef = doc(db, 'users', user.uid, 'shared_with_me', inv.fileId);
+          const sharedSnap = await getDoc(sharedRef);
+          if (!sharedSnap.exists()) {
+            await setDoc(sharedRef, {
+              fileId: inv.fileId,
+              fileName: inv.fileName,
+              fileType: inv.fileType,
+              fileSize: inv.fileSize,
+              downloadUrl: inv.downloadUrl,
+              storagePath: inv.storagePath,
+              ownerId: inv.senderId,
+              parentId: 'root',
+              isDeleted: false,
+              isStarred: false,
+              sharedBy: inv.senderEmail,
+              acceptedAt: serverTimestamp()
+            });
+          }
+        }
+      } catch (err) {
+        console.error("[SYS] Sync accepted invitations error:", err);
+      }
+    };
+    syncAcceptedInvitations();
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -347,6 +415,7 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
     } catch (error: any) {
       hideToast(toastId);
       showToast(error.message, 'error');
+      throw error;
     }
   }, [user, currentFolderId, showToast, hideToast]);
 
@@ -735,13 +804,23 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
 
           <div className="flex items-center gap-3">
              {filter === 'files' && (
-               <button
-                 onClick={handleCreateFolder}
-                 className="flex items-center gap-3 px-6 py-3.5 bg-surface text-on-surface-variant border border-outline/20 rounded-2xl text-sm font-black hover:bg-surface-variant/30 transition-all active:scale-95"
-               >
-                 <FolderPlus size={20} className="text-primary" />
-                 <span>New Folder</span>
-               </button>
+               <>
+                 <button
+                   onClick={handleCreateFolder}
+                   className="flex items-center gap-3 px-6 py-3.5 bg-surface text-on-surface-variant border border-outline/20 rounded-2xl text-sm font-black hover:bg-surface-variant/30 transition-all active:scale-95"
+                 >
+                   <FolderPlus size={20} className="text-primary" />
+                   <span>New Folder</span>
+                 </button>
+                 <button
+                   onClick={() => setIsGoogleDriveImportOpen(true)}
+                   className="flex items-center gap-3 px-6 py-3.5 bg-blue-600/10 text-blue-500 border border-blue-500/20 rounded-2xl text-sm font-black hover:bg-blue-600/20 transition-all active:scale-95"
+                   title="Import from Google Drive"
+                 >
+                   <CloudDownload size={20} />
+                   <span>Google Drive</span>
+                 </button>
+               </>
              )}
 
              <div className="flex bg-surface-variant/30 p-1.5 rounded-2xl">
@@ -934,10 +1013,49 @@ export const XCloudDashboard = ({ filter = 'all' }: { filter?: 'all' | 'starred'
                       onDownload={handleDownload}
                       onShare={handleShareFile}
                       onDelete={handleMoveToTrash}
+                      onVersionHistory={(f) => { setFileForVersionHistory(f); setIsVersionHistoryOpen(true); }}
+                      onEditCode={(f) => { setFileForCodeEditor(f); setIsCodeEditorOpen(true); }}
+                      onExportToDrive={(f) => { setFilesForExport([f]); setIsExportToDriveOpen(true); }}
                     />
                   ))}
                 </div>
               )}
+
+              <VersionHistoryModal
+                isOpen={isVersionHistoryOpen}
+                onClose={() => setIsVersionHistoryOpen(false)}
+                file={fileForVersionHistory}
+              />
+
+              <CodeEditorModal
+                isOpen={isCodeEditorOpen}
+                onClose={() => setIsCodeEditorOpen(false)}
+                file={fileForCodeEditor}
+              />
+
+              <GlobalSearchModal
+                isOpen={isGlobalSearchOpen}
+                onClose={() => setIsGlobalSearchOpen(false)}
+                onSelectFile={(file) => {
+                  if (file.fileType === 'Folder') {
+                    navigateToFolder(file);
+                  } else {
+                    setPreviewFile(file);
+                  }
+                }}
+              />
+
+              <GoogleDriveImportModal
+                isOpen={isGoogleDriveImportOpen}
+                onClose={() => setIsGoogleDriveImportOpen(false)}
+                currentFolderId={currentFolderId}
+              />
+
+              <ExportToDriveModal
+                isOpen={isExportToDriveOpen}
+                onClose={() => setIsExportToDriveOpen(false)}
+                files={filesForExport}
+              />
 
               <AnimatePresence>
                 {isDragActive && (

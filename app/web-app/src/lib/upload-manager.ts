@@ -26,6 +26,15 @@ export interface FileEntry {
   isLocked?: boolean;
   playbackPosition?: number; // Last viewed position in seconds
   tags?: string[];
+  folderColor?: string;
+  folderIcon?: string;
+  isShared?: boolean;
+  md5Checksum?: string;
+  isDeduplicatedPointer?: boolean;
+  originalFileId?: string;
+  isWorkspaceShortcut?: boolean;
+  webViewLink?: string;
+  driveFileId?: string;
 }
 
 export type UploadProgressCallback = (progress: number) => void;

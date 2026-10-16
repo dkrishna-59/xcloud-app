@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, FolderPlus, Loader2, Folder } from 'lucide-react';
+import { X, FolderPlus, Loader2, Folder, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CreateFolderModalProps {
@@ -14,6 +14,7 @@ interface CreateFolderModalProps {
 export const CreateFolderModal = ({ isOpen, onClose, onCreate }: CreateFolderModalProps) => {
   const [folderName, setFolderName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -22,12 +23,14 @@ export const CreateFolderModal = ({ isOpen, onClose, onCreate }: CreateFolderMod
     if (!folderName.trim()) return;
 
     setIsLoading(true);
+    setErrorMessage(null);
     try {
       await onCreate(folderName.trim());
       setFolderName('');
       onClose();
     } catch (error: any) {
       console.error("Failed to create folder:", error);
+      setErrorMessage(error.message || "Failed to create folder");
     } finally {
       setIsLoading(false);
     }
@@ -53,6 +56,13 @@ export const CreateFolderModal = ({ isOpen, onClose, onCreate }: CreateFolderMod
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+             {errorMessage && (
+               <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium">
+                  <AlertCircle size={16} className="shrink-0" />
+                  <span>{errorMessage}</span>
+               </div>
+             )}
+
              <div className="space-y-2">
                 <label className="block text-xs font-semibold tracking-wider text-neutral-400 uppercase">Folder Name</label>
                 <div className="relative">
