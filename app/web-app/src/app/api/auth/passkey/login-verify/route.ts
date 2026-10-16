@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
+import { verifyAuthenticationResponse } from '@simplewebauthn/server';
 import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore, collectionGroup, getDocs, query, where } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import { getFirestore, collectionGroup, getDocs, query, where, doc, getDoc, deleteDoc } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -14,36 +14,71 @@ const firebaseConfig = {
 
 const app = getApps().length > 0 ? getApps()[0] : (firebaseConfig.apiKey ? initializeApp(firebaseConfig) : null);
 const db = app ? getFirestore(app) : null;
-const auth = app ? getAuth(app) : null;
 
 export async function POST(req: Request) {
   try {
-    const { credential } = await req.json();
-    if (!credential) return NextResponse.json({ error: "Missing credential" }, { status: 400 });
+    const body = await req.json();
+    const { id: credentialId } = body;
 
-    // Find passkey record across users
-    if (db) {
-      const q = query(collectionGroup(db, 'passkeys'), where('credentialId', '==', credential.id));
-      const snap = await getDocs(q);
-
-      if (snap.empty) {
-        return NextResponse.json({ error: "Passkey credential not found" }, { status: 404 });
-      }
-
-      const passkeyDoc = snap.docs[0];
-      const userId = passkeyDoc.ref.parent.parent?.id;
-
-      if (!userId) {
-        return NextResponse.json({ error: "Associated user not found" }, { status: 404 });
-      }
-
-      // Generate custom token for user via Firebase Admin or Auth REST API
-      // For web demo, return success with uid
-      return NextResponse.json({ success: true, uid: userId, customToken: "mock_custom_token" });
+    if (!db) {
+      return NextResponse.json({ error: "Database unavailable" }, { status: 500 });
     }
 
-    return NextResponse.json({ error: "Database unavailable" }, { status: 500 });
+    // 1. Find passkey record across all users
+    const q = query(collectionGroup(db, 'passkeys'), where('credentialId', '==', credentialId));
+    const snap = await getDocs(q);
+
+    if (snap.empty) {
+      return NextResponse.json({ error: "Passkey credential not registered" }, { status: 404 });
+    }
+
+    const passkeyDoc = snap.docs[0];
+    const passkeyData = passkeyDoc.data();
+    const userId = passkeyDoc.ref.parent.parent?.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Associated user not found" }, { status: 404 });
+    }
+
+    const expectedRPID = "localhost";
+    const expectedOrigin = "http://localhost:3000";
+
+    const authenticator = {
+      credentialPublicKey: new Uint8Array(Buffer.from(passkeyData.publicKey, 'base64')),
+      credentialID: new Uint8Array(Buffer.from(passkeyData.credentialId)),
+      counter: passkeyData.counter || 0,
+      transports: passkeyData.transports || []
+    };
+
+    const clientDataJSON = JSON.parse(Buffer.from(body.response.clientDataJSON, 'base64').toString('utf8'));
+    const challenge = clientDataJSON.challenge;
+
+    const challengeRef = doc(db, 'passkey_challenges', challenge);
+    const challengeSnap = await getDoc(challengeRef);
+    if (!challengeSnap.exists()) {
+      return NextResponse.json({ error: "Invalid or expired authentication challenge" }, { status: 400 });
+    }
+    await deleteDoc(challengeRef); // Single-use challenge
+
+    const verification = await verifyAuthenticationResponse({
+      response: body,
+      expectedChallenge: challenge,
+      expectedRPID,
+      expectedOrigin,
+      authenticator,
+    } as any);
+
+    if (!verification.verified) {
+      return NextResponse.json({ error: "Passkey signature verification failed" }, { status: 401 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      uid: userId,
+      customToken: "mock_custom_token_" + userId
+    });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error("Passkey verification error:", err);
+    return NextResponse.json({ error: err.message || "Verification failed" }, { status: 500 });
   }
 }

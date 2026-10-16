@@ -61,6 +61,11 @@ service cloud.firestore {
       allow read, update, delete: if isSignedIn();
     }
 
+    // --- Passkey Challenges ---
+    match /passkey_challenges/{challengeId} {
+      allow read, write: if true;
+    }
+
     // --- Global Shared File Access (Collection Group) ---
     match /{path=**}/user_files/{fileId} {
       allow read: if isSignedIn() && (
