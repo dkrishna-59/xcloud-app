@@ -5,6 +5,7 @@ import "./globals.css";
 import { AuthProvider } from "@/context/auth-context";
 import { ToastProvider } from "@/context/toast-context";
 import { SearchProvider } from "@/context/search-context";
+import { VaultProvider } from "@/context/vault-context";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { PasscodeLockOverlay } from "@/components/layout/PasscodeLockOverlay";
@@ -79,16 +80,18 @@ export default function RootLayout({
             <ToastProvider>
               <SearchProvider>
                 <LoginGate>
-                  <PasscodeLockOverlay />
-                  <div className="flex min-h-screen overflow-hidden">
-                    <Sidebar />
-                    <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-                      <Header />
-                      <div className="flex-1 overflow-y-auto">
-                        {children}
+                  <VaultProvider>
+                    <PasscodeLockOverlay />
+                    <div className="flex min-h-screen overflow-hidden">
+                      <Sidebar />
+                      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+                        <Header />
+                        <div className="flex-1 overflow-y-auto">
+                          {children}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  </VaultProvider>
                 </LoginGate>
               </SearchProvider>
             </ToastProvider>

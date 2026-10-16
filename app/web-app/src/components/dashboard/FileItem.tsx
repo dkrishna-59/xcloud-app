@@ -32,7 +32,8 @@ import {
   Palette,
   History,
   FileCode,
-  CloudUpload
+  CloudUpload,
+  Play
 } from 'lucide-react';
 import { cn, formatFileSize, formatTimestamp } from '@/lib/utils';
 import { FileEntry } from '@/lib/upload-manager';
@@ -128,6 +129,13 @@ export const FileItem = memo(({
   onExportToDrive = () => {}
 }: FileItemProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  const fileType = (file.fileType || '').toLowerCase();
+  const ext = file.fileName.split('.').pop()?.toLowerCase() || '';
+  const isImage = fileType === 'image' || ['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif', 'svg', 'bmp', 'ico'].includes(ext);
+  const isVideo = fileType === 'video' || ['mp4', 'webm', 'mov', 'mkv', 'avi', '3gp', 'm4v'].includes(ext);
 
   const menuItems = [
     { icon: Edit2, label: 'Rename', action: () => { setIsMenuOpen(false); onStartRename(file); } },
@@ -151,7 +159,7 @@ export const FileItem = memo(({
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       className={cn(
-        "group relative transition-all duration-300 cursor-pointer",
+        "group relative transition-all duration-300 cursor-pointer overflow-hidden",
         viewMode === 'grid' ? (
           "bg-surface border border-outline/10 rounded-[2rem] p-5 flex flex-col justify-between hover:shadow-lg hover:border-primary/30 aspect-square"
         ) : (
@@ -171,8 +179,11 @@ export const FileItem = memo(({
 
       {viewMode === 'grid' ? (
         <>
-          <div className="flex items-start justify-between">
-            <div className="w-14 h-14 bg-surface-variant/40 rounded-2xl flex items-center justify-center shadow-inner text-2xl">
+          <div className="flex items-start justify-between relative z-10">
+            <div className={cn(
+              "rounded-2xl flex items-center justify-center shadow-inner",
+              (isImage || isVideo) && file.downloadUrl && !imageError ? "w-10 h-10 bg-black/60 backdrop-blur-md text-white text-lg border border-white/10" : "w-14 h-14 bg-surface-variant/40 text-2xl"
+            )}>
               {getFileIcon(file.fileType, file.fileName, file.folderColor, file.folderIcon)}
             </div>
 
@@ -241,7 +252,46 @@ export const FileItem = memo(({
             </div>
           </div>
 
-          <div className="space-y-1 mt-4">
+          {/* Rich Media Thumbnail Preview for Grid View */}
+          {(isImage || isVideo) && file.downloadUrl && !imageError ? (
+            <div className="absolute inset-0 rounded-[2rem] overflow-hidden bg-surface-variant/10 -z-0">
+              {isImage ? (
+                <>
+                  {!imageLoaded && (
+                    <div className="absolute inset-0 bg-surface-variant/20 animate-pulse flex items-center justify-center">
+                      <ImageIcon className="text-outline opacity-30" size={32} />
+                    </div>
+                  )}
+                  <img
+                    src={file.downloadUrl}
+                    alt={file.fileName}
+                    onLoad={() => setImageLoaded(true)}
+                    onError={() => setImageError(true)}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                </>
+              ) : (
+                <div className="relative w-full h-full">
+                  <video
+                    src={`${file.downloadUrl}#t=0.5`}
+                    preload="metadata"
+                    muted
+                    playsInline
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                    <div className="w-12 h-12 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                      <Play size={20} fill="currentColor" />
+                    </div>
+                  </div>
+                </div>
+              )}
+              {/* Subtle dark gradient overlay at bottom for file name readability */}
+              <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/85 via-black/45 to-transparent pointer-events-none" />
+            </div>
+          ) : null}
+
+          <div className={cn("space-y-1 relative z-10", (isImage || isVideo) && file.downloadUrl && !imageError ? "text-white mt-auto pt-6 px-1" : "")}>
             {editingFile === file.fileId ? (
               <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                 <input
@@ -260,11 +310,11 @@ export const FileItem = memo(({
                 </button>
               </div>
             ) : (
-              <h3 className="text-sm font-black text-on-surface truncate tracking-tight">{file.fileName}</h3>
+              <h3 className={cn("text-sm font-black truncate tracking-tight", (isImage || isVideo) && file.downloadUrl && !imageError ? "text-white drop-shadow-md" : "text-on-surface")}>{file.fileName}</h3>
             )}
-            <div className="flex items-center justify-between text-[11px] text-on-surface-variant font-medium">
+            <div className={cn("flex items-center justify-between text-[11px] font-medium", (isImage || isVideo) && file.downloadUrl && !imageError ? "text-white/80 drop-shadow" : "text-on-surface-variant")}>
               <span>{file.fileType === 'Folder' ? 'Folder' : formatFileSize(file.fileSize)}</span>
-              <span className="opacity-60">{formatTimestamp(file.uploadTimestamp, 'MMM d, yyyy')}</span>
+              <span className="opacity-80">{formatTimestamp(file.uploadTimestamp, 'MMM d, yyyy')}</span>
             </div>
           </div>
         </>

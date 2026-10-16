@@ -13,7 +13,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Cloud,
-  HardDrive
+  HardDrive,
+  ShieldCheck
 } from 'lucide-react';
 import { cn, formatFileSize } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
@@ -26,6 +27,7 @@ const navItems = [
   { name: 'Favorites', href: '/favorites', icon: Star },
   { name: 'Shared', href: '/shared', icon: Users },
   { name: 'Files', href: '/files', icon: Files },
+  { name: 'Vault', href: '/dashboard/vault', icon: ShieldCheck },
   { name: 'Trash', href: '/trash', icon: Trash2 },
   { name: 'Storage', href: '/storage', icon: HardDrive },
   { name: 'Settings', href: '/settings', icon: Settings },
