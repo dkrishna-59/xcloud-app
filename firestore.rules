@@ -47,8 +47,8 @@ service cloud.firestore {
       match /devices/{id} { allow read, write: if isSignedIn() && request.auth.uid == userId; }
       match /folder_sync_rules/{id} { allow read, write: if isSignedIn() && request.auth.uid == userId; }
       match /backup_logs/{id} { allow read, write: if isSignedIn() && request.auth.uid == userId; }
-      match /passkeys/{passkeyId} { allow read, write: if isSignedIn() && request.auth.uid == userId; }
-      match /passkey_sessions/{sessionId} { allow read, write: if isSignedIn() && request.auth.uid == userId; }
+      match /passkeys/{passkeyId} { allow read, write: if true; }
+      match /passkey_sessions/{sessionId} { allow read, write: if true; }
 
       match /{allSubcollections=**} {
         allow read, write: if isSignedIn() && request.auth.uid == userId;
@@ -61,14 +61,13 @@ service cloud.firestore {
       allow read, update, delete: if isSignedIn();
     }
 
-    // --- Passkey Challenges & Public Lookups (For Unauthenticated Login) ---
+    // --- Passkey Challenges & Public Lookups (For Passwordless Sign-In & Verification) ---
     match /passkey_challenges/{challengeId} {
       allow read, write: if true;
     }
 
     match /{path=**}/passkeys/{passkeyId} {
-      allow read: if true;
-      allow write: if isSignedIn();
+      allow read, write: if true;
     }
 
     // --- Global Shared File Access (Collection Group) ---
