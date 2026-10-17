@@ -61,9 +61,9 @@ export async function POST(req: Request) {
     const refererHeader = req.headers.get('referer');
     const expectedOrigin = originHeader || (refererHeader ? new URL(refererHeader).origin : `http://${host}`);
 
-    const authenticator = {
-      credentialPublicKey: new Uint8Array(Buffer.from(passkeyData.publicKey, 'base64')),
-      credentialID: new Uint8Array(Buffer.from(passkeyData.credentialId)),
+    const credential = {
+      id: passkeyData.credentialId,
+      publicKey: new Uint8Array(Buffer.from(passkeyData.publicKey, 'base64')),
       counter: passkeyData.counter || 0,
       transports: passkeyData.transports || []
     };
@@ -83,8 +83,8 @@ export async function POST(req: Request) {
       expectedChallenge: challenge,
       expectedRPID,
       expectedOrigin,
-      authenticator,
-    } as any);
+      credential,
+    });
 
     if (!verification.verified) {
       return NextResponse.json({ error: "Passkey signature verification failed" }, { status: 401 });
