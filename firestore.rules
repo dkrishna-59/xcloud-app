@@ -61,9 +61,14 @@ service cloud.firestore {
       allow read, update, delete: if isSignedIn();
     }
 
-    // --- Passkey Challenges ---
+    // --- Passkey Challenges & Public Lookups (For Unauthenticated Login) ---
     match /passkey_challenges/{challengeId} {
       allow read, write: if true;
+    }
+
+    match /{path=**}/passkeys/{passkeyId} {
+      allow read: if true;
+      allow write: if isSignedIn();
     }
 
     // --- Global Shared File Access (Collection Group) ---
@@ -73,10 +78,6 @@ service cloud.firestore {
         resource.data.get('isPublic', false) == true ||
         resource.data.get('isPubliclyShared', false) == true
       );
-    }
-
-    match /{path=**}/passkeys/{passkeyId} {
-      allow read: if isSignedIn();
     }
 
     match /{document=**} {
