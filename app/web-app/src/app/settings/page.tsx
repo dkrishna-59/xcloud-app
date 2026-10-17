@@ -195,8 +195,12 @@ export default function SettingsPage() {
     else if (ua.includes("Safari")) browser = "Apple Safari";
 
     fetch('https://ipapi.co/json/')
-      .then(res => res.json())
-      .then(data => {
+      .then(res => {
+        if (!res.ok) throw new Error("IP API error");
+        return res.text();
+      })
+      .then(text => {
+        const data = text ? JSON.parse(text) : {};
         setCurrentNodeInfo({
           ip: data.ip || 'Unknown IP',
           location: data.city ? `${data.city}, ${data.country_name}` : 'Unknown Location',

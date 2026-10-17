@@ -35,7 +35,8 @@ export const DrivePermissionsModal = ({ isOpen, onClose, file }: DrivePermission
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) throw new Error("Failed to fetch Google Drive permissions");
-        const data = await res.json();
+        const text = await res.text();
+        const data = text ? JSON.parse(text) : {};
         setPermissions(data.permissions || []);
       } catch (err: any) {
         showToast(err.message || "Failed to load permissions", "error");
@@ -72,7 +73,8 @@ export const DrivePermissionsModal = ({ isOpen, onClose, file }: DrivePermission
       });
 
       if (!res.ok) throw new Error("Failed to add permission");
-      const newPerm = await res.json();
+      const text = await res.text();
+      const newPerm = text ? JSON.parse(text) : {};
       setPermissions(prev => [...prev, newPerm]);
       setNewEmail('');
       hideToast(toastId);
