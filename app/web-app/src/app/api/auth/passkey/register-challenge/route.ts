@@ -20,7 +20,10 @@ export async function POST(req: Request) {
     const { userId, email, displayName } = await req.json();
     if (!userId) return NextResponse.json({ error: "Missing userId" }, { status: 400 });
 
-    const rpID = "localhost";
+    const host = req.headers.get('host') || 'localhost';
+    let rpID = host.split(':')[0];
+    if (rpID === '127.0.0.1') rpID = 'localhost';
+
     const rpName = "XCloud Secure Vault";
 
     const options = await generateRegistrationOptions({

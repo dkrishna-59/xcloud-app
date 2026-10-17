@@ -40,8 +40,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Associated user not found" }, { status: 404 });
     }
 
-    const expectedRPID = "localhost";
-    const expectedOrigin = "http://localhost:3000";
+    const host = req.headers.get('host') || 'localhost';
+    let expectedRPID = host.split(':')[0];
+    if (expectedRPID === '127.0.0.1') expectedRPID = 'localhost';
+
+    const originHeader = req.headers.get('origin');
+    const refererHeader = req.headers.get('referer');
+    const expectedOrigin = originHeader || (refererHeader ? new URL(refererHeader).origin : `http://${host}`);
 
     const authenticator = {
       credentialPublicKey: new Uint8Array(Buffer.from(passkeyData.publicKey, 'base64')),

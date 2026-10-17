@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { generateAuthenticationOptions } from '@simplewebauthn/server';
 import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore, collectionGroup, getDocs, doc, setDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -17,7 +17,9 @@ const db = app ? getFirestore(app) : null;
 
 export async function POST(req: Request) {
   try {
-    const rpID = "localhost"; // Update to domain in production (e.g. xchat.app)
+    const host = req.headers.get('host') || 'localhost';
+    let rpID = host.split(':')[0];
+    if (rpID === '127.0.0.1') rpID = 'localhost';
 
     const options = await generateAuthenticationOptions({
       rpID,
@@ -26,10 +28,14 @@ export async function POST(req: Request) {
 
     // Store challenge ephemeral state
     if (db) {
-      await setDoc(doc(db, 'passkey_challenges', options.challenge), {
-        challenge: options.challenge,
-        createdAt: Date.now()
-      });
+      try {
+        await setDoc(doc(db, 'passkey_challenges', options.challenge), {
+          challenge: options.challenge,
+          createdAt: Date.now()
+        });
+      } catch (dbErr) {
+        console.warn("Firestore challenge store warning:", dbErr);
+      }
     }
 
     return NextResponse.json(options);

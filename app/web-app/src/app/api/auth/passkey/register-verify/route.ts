@@ -24,8 +24,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Database unavailable" }, { status: 500 });
     }
 
-    const expectedRPID = "localhost";
-    const expectedOrigin = "http://localhost:3000";
+    const host = req.headers.get('host') || 'localhost';
+    let expectedRPID = host.split(':')[0];
+    if (expectedRPID === '127.0.0.1') expectedRPID = 'localhost';
+
+    const originHeader = req.headers.get('origin');
+    const refererHeader = req.headers.get('referer');
+    const expectedOrigin = originHeader || (refererHeader ? new URL(refererHeader).origin : `http://${host}`);
 
     const clientDataJSON = JSON.parse(Buffer.from(credential.response.clientDataJSON, 'base64').toString('utf8'));
     const challenge = clientDataJSON.challenge;
