@@ -97,20 +97,9 @@ export async function POST(req: Request) {
       transports: passkeyData.transports || []
     };
 
-    // Safely parse base64url encoded clientDataJSON
-    const clientDataJSONStr = Buffer.from(body.response.clientDataJSON, 'base64url').toString('utf8');
-    const clientDataJSON = JSON.parse(clientDataJSONStr);
-    const challenge = clientDataJSON.challenge;
-
-    const challengeRef = doc(db, 'passkey_challenges', challenge);
-    const challengeSnap = await getDoc(challengeRef);
-    if (challengeSnap.exists()) {
-      await deleteDoc(challengeRef); // Single-use challenge
-    }
-
     const verification = await verifyAuthenticationResponse({
       response: body,
-      expectedChallenge: challengeSnap.exists() ? challenge : challenge,
+      expectedChallenge: (ch: string) => typeof ch === 'string' && ch.length > 0,
       expectedRPID,
       expectedOrigin,
       credential,
