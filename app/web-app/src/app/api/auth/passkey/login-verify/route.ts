@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { verifyAuthenticationResponse } from '@simplewebauthn/server';
 import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore, collectionGroup, getDocs, query, where, doc, getDoc, deleteDoc } from 'firebase/firestore';
+import { getFirestore, collectionGroup, collection, getDocs, query, where, doc, getDoc, deleteDoc } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -24,11 +24,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Database unavailable" }, { status: 500 });
     }
 
-    // 1. Find passkey record across all users
-    const q = query(collectionGroup(db, 'passkeys'), where('credentialId', '==', credentialId));
-    const snap = await getDocs(q);
+    // 1. Find passkey record across all users with resilient fallback
+    let snap: any;
+    try {
+      const q = query(collectionGroup(db, 'passkeys'), where('credentialId', '==', credentialId));
+      snap = await getDocs(q);
+    } catch (indexErr: any) {
+      console.warn("Collection group query index pending, attempting direct lookup fallback:", indexErr.message);
+      const usersSnap = await getDocs(query(collection(db, 'users')));
+      for (const userDoc of usersSnap.docs) {
+        const pkSnap = await getDoc(doc(db, 'users', userDoc.id, 'passkeys', credentialId));
+        if (pkSnap.exists()) {
+          snap = { empty: false, docs: [pkSnap] };
+          break;
+        }
+      }
+    }
 
-    if (snap.empty) {
+    if (!snap || snap.empty) {
       return NextResponse.json({ error: "Passkey credential not registered" }, { status: 404 });
     }
 
