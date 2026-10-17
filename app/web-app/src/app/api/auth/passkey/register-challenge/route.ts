@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
@@ -19,8 +20,8 @@ export async function POST(req: Request) {
     const { userId, email, displayName } = await req.json();
     if (!userId) return NextResponse.json({ error: "Missing userId" }, { status: 400 });
 
-    const challengeBytes = window.crypto.getRandomValues(new Uint8Array(32));
-    const challenge = Buffer.from(challengeBytes).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    const challengeBytes = crypto.randomBytes(32);
+    const challenge = challengeBytes.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 
     // Store challenge in Firestore for verification
     if (db) {
