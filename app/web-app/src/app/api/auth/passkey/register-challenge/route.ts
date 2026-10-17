@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import crypto from 'crypto';
+import { generateRegistrationOptions } from '@simplewebauthn/server';
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
@@ -20,37 +20,40 @@ export async function POST(req: Request) {
     const { userId, email, displayName } = await req.json();
     if (!userId) return NextResponse.json({ error: "Missing userId" }, { status: 400 });
 
-    const challengeBytes = crypto.randomBytes(32);
-    const challenge = challengeBytes.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    const rpID = "localhost";
+    const rpName = "XCloud Secure Vault";
 
-    // Store challenge in Firestore for verification
-    if (db) {
-      await setDoc(doc(db, 'users', userId, 'passkey_sessions', 'reg_challenge'), {
-        challenge,
-        createdAt: Date.now()
-      });
-    }
-
-    const options = {
-      challenge,
-      rp: { name: "XCloud Secure Vault", id: "localhost" },
-      user: {
-        id: Buffer.from(userId).toString('base64'),
-        name: email,
-        displayName: displayName || email
-      },
-      pubKeyCredParams: [{ alg: -7, type: "public-key" }, { alg: -257, type: "public-key" }],
-      timeout: 60000,
-      attestation: "direct",
+    const options = await generateRegistrationOptions({
+      rpName,
+      rpID,
+      userID: new TextEncoder().encode(userId),
+      userName: email || 'user@xcloud.app',
+      userDisplayName: displayName || email || 'XCloud User',
+      attestationType: "none",
       authenticatorSelection: {
         authenticatorAttachment: "platform",
         userVerification: "required",
-        residentKey: "preferred"
+        residentKey: "preferred",
+      },
+      supportedAlgorithmIDs: [-7, -257],
+    });
+
+    // Store challenge in Firestore for verification
+    if (db) {
+      try {
+        await setDoc(doc(db, 'passkey_challenges', options.challenge), {
+          challenge: options.challenge,
+          userId,
+          createdAt: Date.now()
+        });
+      } catch (dbErr) {
+        console.warn("Firestore challenge store warning:", dbErr);
       }
-    };
+    }
 
     return NextResponse.json(options);
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error("Register challenge error:", err);
+    return NextResponse.json({ error: err.message || "Failed to generate registration challenge" }, { status: 500 });
   }
 }
