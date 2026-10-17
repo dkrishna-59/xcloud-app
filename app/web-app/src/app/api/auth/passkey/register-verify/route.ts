@@ -30,17 +30,26 @@ export async function POST(req: Request) {
 
     const originHeader = req.headers.get('origin');
     const refererHeader = req.headers.get('referer');
-    const expectedOrigin = originHeader || (refererHeader ? new URL(refererHeader).origin : `http://${host}`);
+    const refOrigin = refererHeader ? new URL(refererHeader).origin : null;
 
-    const clientDataJSON = JSON.parse(Buffer.from(credential.response.clientDataJSON, 'base64').toString('utf8'));
+    const expectedOrigin = Array.from(new Set([
+      originHeader,
+      refOrigin,
+      `http://${host}`,
+      `https://${host}`,
+      `http://localhost:3000`,
+      `http://127.0.0.1:3000`
+    ].filter(Boolean))) as string[];
+
+    const clientDataJSONStr = Buffer.from(credential.response.clientDataJSON, 'base64url').toString('utf8');
+    const clientDataJSON = JSON.parse(clientDataJSONStr);
     const challenge = clientDataJSON.challenge;
 
     const challengeRef = doc(db, 'passkey_challenges', challenge);
     const challengeSnap = await getDoc(challengeRef);
-    if (!challengeSnap.exists()) {
-      return NextResponse.json({ error: "Invalid or expired registration challenge" }, { status: 400 });
+    if (challengeSnap.exists()) {
+      await deleteDoc(challengeRef);
     }
-    await deleteDoc(challengeRef);
 
     const verification = await verifyRegistrationResponse({
       response: credential,
