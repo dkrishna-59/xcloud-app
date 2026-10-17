@@ -6,13 +6,15 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
-  getAdditionalUserInfo
+  getAdditionalUserInfo,
+  signInWithCustomToken
 } from 'firebase/auth';
 import { auth, googleProvider, facebookProvider, appleProvider, db } from '@/lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { Cloud, ArrowRight, ShieldCheck, Zap, Globe, Mail, Lock, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { loginWithPasskey, isWebAuthnSupported } from '@/lib/passkeyService';
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -20,7 +22,28 @@ export default function AuthPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
+
+  const handlePasskeyLogin = async () => {
+    if (!isWebAuthnSupported()) {
+      setError("WebAuthn Passkeys are not supported in this browser.");
+      return;
+    }
+
+    setIsPasskeyLoading(true);
+    setError(null);
+    try {
+      const { customToken } = await loginWithPasskey();
+      if (auth) {
+        await signInWithCustomToken(auth, customToken);
+      }
+    } catch (err: any) {
+      setError(err.message || "Passkey sign-in failed");
+    } finally {
+      setIsPasskeyLoading(false);
+    }
+  };
 
   const handleSocialAuth = async (provider: any) => {
     if (isLoading) return; // Prevent double-clicks which cancel popups
@@ -246,6 +269,18 @@ export default function AuthPage() {
               {!isLoading && <ArrowRight size={20} />}
             </button>
           </form>
+
+          {/* M3 Passkey Sign-In Button */}
+          <button
+            type="button"
+            onClick={handlePasskeyLogin}
+            disabled={isPasskeyLoading}
+            style={{ backgroundColor: '#6750A4', color: '#FFFFFF' }}
+            className="w-full py-4 px-6 rounded-full font-black text-xs uppercase tracking-[0.2em] shadow-[0_4px_12px_rgba(103,80,164,0.3)] hover:opacity-90 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50 my-6"
+          >
+            {isPasskeyLoading ? <Loader2 className="animate-spin" size={18} /> : <ShieldCheck size={18} style={{ color: '#D0BCFF' }} />}
+            <span>Sign in with Passkey</span>
+          </button>
 
           <div className="relative flex items-center gap-6 py-2">
             <div className="h-px bg-outline/10 flex-1"></div>
