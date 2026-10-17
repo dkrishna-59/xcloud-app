@@ -1,6 +1,6 @@
 /**
  * WebAuthn Passkey Authentication Client Service for XCloud Web Application
- * Uses @simplewebauthn/browser.
+ * Uses @simplewebauthn/browser with safe JSON parsing.
  */
 
 import { startRegistration, startAuthentication, browserSupportsWebAuthn } from '@simplewebauthn/browser';
@@ -19,15 +19,20 @@ export const registerPasskey = async (userId: string, email: string, displayName
     body: JSON.stringify({ userId, email, displayName })
   });
 
-  if (!res.ok) {
-    const errData = await res.json().catch(() => ({}));
-    throw new Error(errData.error || "Failed to generate registration challenge");
+  const text = await res.text();
+  let data: any = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch (_) {
+    throw new Error("Invalid response format from registration challenge server.");
   }
 
-  const optionsJSON = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || "Failed to generate registration challenge");
+  }
 
   // 2. Invoke @simplewebauthn/browser registration ceremony
-  const attestationResponse = await startRegistration(optionsJSON);
+  const attestationResponse = await startRegistration(data);
 
   // 3. Verify on backend and store credential
   const verifyRes = await fetch('/api/auth/passkey/register-verify', {
@@ -36,9 +41,16 @@ export const registerPasskey = async (userId: string, email: string, displayName
     body: JSON.stringify({ userId, credential: attestationResponse })
   });
 
+  const verifyText = await verifyRes.text();
+  let verifyData: any = {};
+  try {
+    verifyData = verifyText ? JSON.parse(verifyText) : {};
+  } catch (_) {
+    throw new Error("Invalid response format from registration verification server.");
+  }
+
   if (!verifyRes.ok) {
-    const err = await verifyRes.json();
-    throw new Error(err.error || "Passkey registration verification failed");
+    throw new Error(verifyData.error || "Passkey registration verification failed");
   }
 
   return true;
@@ -49,8 +61,15 @@ export const authenticatePasskey = async (): Promise<{ customToken: string; uid:
 
   // 1. Fetch authentication options challenge
   const res = await fetch('/api/auth/passkey/login-challenge', { method: 'POST' });
-  if (!res.ok) throw new Error("Failed to generate login challenge");
-  const optionsJSON = await res.json();
+  const challengeText = await res.text();
+  let optionsJSON: any = {};
+  try {
+    optionsJSON = challengeText ? JSON.parse(challengeText) : {};
+  } catch (_) {
+    throw new Error("Invalid response format from login challenge server.");
+  }
+
+  if (!res.ok) throw new Error(optionsJSON.error || "Failed to generate login challenge");
 
   // 2. Get credential assertion from browser authenticator
   const assertionResponse = await startAuthentication(optionsJSON);
@@ -62,11 +81,17 @@ export const authenticatePasskey = async (): Promise<{ customToken: string; uid:
     body: JSON.stringify(assertionResponse)
   });
 
-  if (!verifyRes.ok) {
-    const err = await verifyRes.json();
-    throw new Error(err.error || "Passkey login verification failed");
+  const verifyText = await verifyRes.text();
+  let verifyData: any = {};
+  try {
+    verifyData = verifyText ? JSON.parse(verifyText) : {};
+  } catch (_) {
+    throw new Error("Invalid response format from login verification server.");
   }
 
-  const data = await verifyRes.json();
-  return { customToken: data.customToken, uid: data.uid };
+  if (!verifyRes.ok) {
+    throw new Error(verifyData.error || "Passkey login verification failed");
+  }
+
+  return { customToken: verifyData.customToken, uid: verifyData.uid };
 };

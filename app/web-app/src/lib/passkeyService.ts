@@ -1,6 +1,6 @@
 /**
  * FIDO2 / WebAuthn Passkey Login Service for XCloud Web Application
- * Uses @simplewebauthn/browser for passwordless sign-in.
+ * Uses @simplewebauthn/browser for passwordless sign-in with safe JSON parsing.
  */
 
 import { startAuthentication, browserSupportsWebAuthn } from '@simplewebauthn/browser';
@@ -20,11 +20,17 @@ export const loginWithPasskey = async (): Promise<{ customToken: string; uid: st
     headers: { 'Content-Type': 'application/json' }
   });
 
-  if (!challengeRes.ok) {
-    throw new Error("Failed to generate passkey login challenge");
+  const challengeText = await challengeRes.text();
+  let optionsJSON: any = {};
+  try {
+    optionsJSON = challengeText ? JSON.parse(challengeText) : {};
+  } catch (_) {
+    throw new Error("Invalid response format from login challenge server.");
   }
 
-  const optionsJSON = await challengeRes.json();
+  if (!challengeRes.ok) {
+    throw new Error(optionsJSON.error || "Failed to generate passkey login challenge");
+  }
 
   // 2. Trigger browser authenticator prompt (Touch ID, Windows Hello, Face ID, Security Key)
   const authenticationResponse = await startAuthentication(optionsJSON);
@@ -36,11 +42,17 @@ export const loginWithPasskey = async (): Promise<{ customToken: string; uid: st
     body: JSON.stringify(authenticationResponse)
   });
 
-  if (!verifyRes.ok) {
-    const err = await verifyRes.json();
-    throw new Error(err.error || "Passkey authentication verification failed");
+  const verifyText = await verifyRes.text();
+  let verifyData: any = {};
+  try {
+    verifyData = verifyText ? JSON.parse(verifyText) : {};
+  } catch (_) {
+    throw new Error("Invalid response format from login verification server.");
   }
 
-  const data = await verifyRes.json();
-  return { customToken: data.customToken, uid: data.uid };
+  if (!verifyRes.ok) {
+    throw new Error(verifyData.error || "Passkey login verification failed");
+  }
+
+  return { customToken: verifyData.customToken, uid: verifyData.uid };
 };
