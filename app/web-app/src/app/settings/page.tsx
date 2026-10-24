@@ -524,14 +524,14 @@ export default function SettingsPage() {
       </AnimatePresence>
 
       <header className="space-y-4">
-        <h1 className="text-display-small font-black text-on-surface tracking-tighter text-primary">Vault Settings</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-[#6750A4] dark:text-[#D0BCFF]">Vault Settings</h1>
 
-        <div className="flex bg-surface-variant/30 p-1 rounded-2xl w-fit">
+        <div className="flex flex-wrap bg-[#EADDFF]/40 dark:bg-[#4F378B]/20 p-1.5 rounded-full w-fit gap-1">
            <button
              onClick={() => setActiveTab('general')}
              className={cn(
-               "px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
-               activeTab === 'general' ? "bg-primary text-on-primary shadow-lg" : "text-on-surface-variant hover:bg-surface-variant/50"
+               "px-6 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all",
+               activeTab === 'general' ? "bg-[#6750A4] text-white shadow-[0_1px_3px_1px_rgba(0,0,0,0.15)]" : "text-[#49454F] dark:text-[#CAC4D0] hover:bg-[#EADDFF]/50"
              )}
            >
              General
@@ -539,8 +539,8 @@ export default function SettingsPage() {
            <button
              onClick={() => setActiveTab('devices')}
              className={cn(
-               "px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
-               activeTab === 'devices' ? "bg-primary text-on-primary shadow-lg" : "text-on-surface-variant hover:bg-surface-variant/50"
+               "px-6 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all",
+               activeTab === 'devices' ? "bg-[#6750A4] text-white shadow-[0_1px_3px_1px_rgba(0,0,0,0.15)]" : "text-[#49454F] dark:text-[#CAC4D0] hover:bg-[#EADDFF]/50"
              )}
            >
              Devices
@@ -548,8 +548,8 @@ export default function SettingsPage() {
            <button
              onClick={() => setActiveTab('connected')}
              className={cn(
-               "px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
-               activeTab === 'connected' ? "bg-primary text-on-primary shadow-lg" : "text-on-surface-variant hover:bg-surface-variant/50"
+               "px-6 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all",
+               activeTab === 'connected' ? "bg-[#6750A4] text-white shadow-[0_1px_3px_1px_rgba(0,0,0,0.15)]" : "text-[#49454F] dark:text-[#CAC4D0] hover:bg-[#EADDFF]/50"
              )}
            >
              Connected Accounts
@@ -561,17 +561,17 @@ export default function SettingsPage() {
         <div className="grid grid-cols-1 gap-8 pb-20">
 
         {/* Profile Section */}
-        <section className="bg-surface-variant/10 border border-outline/5 rounded-[3rem] p-10 shadow-sm relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-32 -mt-32 group-hover:scale-110 transition-transform duration-1000" />
+        <section className="bg-surface-variant/10 border border-outline/5 rounded-[1.5rem] p-8 shadow-[0_1px_3px_1px_rgba(0,0,0,0.15)] relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-[#6750A4]/5 rounded-full blur-3xl -mr-32 -mt-32 group-hover:scale-110 transition-transform duration-1000" />
 
-          <div className="flex items-center justify-between mb-10 relative z-10">
-            <div className="flex items-center gap-5">
-              <div className="p-4 bg-primary-container text-on-primary-container rounded-3xl shadow-sm">
-                <User size={28} />
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-8 relative z-10">
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="p-3.5 bg-[#EADDFF] dark:bg-[#4F378B] text-[#21005D] dark:text-[#EADDFF] rounded-[1rem] shadow-sm shrink-0">
+                <User size={24} />
               </div>
-              <div>
-                <h2 className="text-headline-small font-black text-on-surface">Identity</h2>
-                <p className="text-body-small text-on-surface-variant font-bold uppercase tracking-widest">Public profile data</p>
+              <div className="min-w-0">
+                <h2 className="text-xl font-bold text-[#1D1B20] dark:text-[#E6E0E9] truncate">Identity</h2>
+                <p className="text-xs text-[#49454F] dark:text-[#CAC4D0] font-medium uppercase tracking-wider truncate">Public profile data</p>
               </div>
             </div>
             <button
@@ -579,13 +579,13 @@ export default function SettingsPage() {
                 setEditName(userMetadata.name);
                 setIsEditProfileOpen(true);
               }}
-              className="px-6 py-3 bg-primary/10 text-primary rounded-2xl text-sm font-black hover:bg-primary hover:text-on-primary transition-all active:scale-90"
+              className="px-6 py-2.5 bg-[#6750A4]/10 text-[#6750A4] dark:text-[#D0BCFF] rounded-full text-xs font-bold hover:bg-[#6750A4] hover:text-white transition-all active:scale-95 shrink-0"
             >
               Edit Profile
             </button>
           </div>
 
-          <div className="flex flex-col md:flex-row items-center gap-10 p-8 bg-surface rounded-[2.5rem] border border-outline/10 shadow-inner relative z-10">
+          <div className="flex flex-col md:flex-row items-center gap-8 p-6 bg-surface rounded-[1.5rem] border border-outline/10 shadow-sm relative z-10">
             <div className="relative group">
                {userMetadata?.profilePictureUrl ? (
                  <img src={userMetadata.profilePictureUrl} className="w-32 h-28 rounded-[2rem] border-4 border-surface shadow-2xl object-cover" alt="Profile" />
