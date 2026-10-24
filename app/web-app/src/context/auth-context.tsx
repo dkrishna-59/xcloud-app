@@ -254,8 +254,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = async () => {
     setSessionUnlocked(false);
-    if (auth) {
-      await firebaseSignOut(auth);
+    try {
+      if (auth) {
+        await firebaseSignOut(auth);
+      }
+    } catch (err) {
+      console.error("[AUTH] Sign out error:", err);
+    }
+    // Secure Session Teardown & State Purge
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+        window.name = '';
+      } catch (e) {
+        console.warn("[AUTH] Cache purge warning:", e);
+      }
+      window.location.href = '/auth';
     }
   };
 
