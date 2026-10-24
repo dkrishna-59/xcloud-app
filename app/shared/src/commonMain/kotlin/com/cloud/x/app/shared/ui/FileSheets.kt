@@ -27,6 +27,7 @@ fun FileActionSheet(
     onStar: () -> Unit,
     onRename: () -> Unit,
     onMove: () -> Unit,
+    onCustomize: (() -> Unit)? = null,
     onDelete: () -> Unit,
     onInfo: () -> Unit
 ) {
@@ -67,6 +68,13 @@ fun FileActionSheet(
             icon = Icons.AutoMirrored.Filled.DriveFileMove,
             onClick = onMove
         )
+        if (file.fileType == "Folder" && onCustomize != null) {
+            ActionItem(
+                text = "Customize Folder",
+                icon = Icons.Default.Palette,
+                onClick = onCustomize
+            )
+        }
         ActionItem(
             text = "Rename Key",
             icon = Icons.Default.Edit,

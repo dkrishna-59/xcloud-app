@@ -30,6 +30,8 @@ data class FileEntry(
     val expiryTimestamp: Timestamp? = null,
     val lastOpenedTimestamp: Timestamp? = null,
     val isLocked: Boolean = false,
+    val folderColor: String? = null,
+    val folderIcon: String? = null,
     val sharedWithEmails: List<String> = emptyList(),
     val sharedWith: List<Collaborator>? = emptyList()
 )

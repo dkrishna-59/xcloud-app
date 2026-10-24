@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.cloud.x.app.shared.ui.components.ShareSheet
 import com.cloud.x.app.shared.ui.components.StorageBreakdownWidget
+import com.cloud.x.app.shared.ui.components.FolderCustomizeSheet
 import com.cloud.x.app.shared.viewmodel.DashboardViewModel
 import com.cloud.x.app.shared.viewmodel.StorageViewModel
 import com.cloud.x.model.FileEntry
@@ -140,8 +141,14 @@ fun DashboardScreen(
     var previewFile by remember { mutableStateOf<FileEntry?>(null) }
     var fileToRename by remember { mutableStateOf<FileEntry?>(null) }
     var fileToMove by remember { mutableStateOf<FileEntry?>(null) }
+    var fileToCustomize by remember { mutableStateOf<FileEntry?>(null) }
     var fileInfoToShow by remember { mutableStateOf<FileEntry?>(null) }
+    var showStorageAnalyticsSheet by remember { mutableStateOf(false) }
     
+    // Batch Operations State
+    var selectedFileIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var isBatchMoving by remember { mutableStateOf(false) }
+
     val profileSheetState = rememberModalBottomSheetState()
     val activitySheetState = rememberModalBottomSheetState()
     val devicesSheetState = rememberModalBottomSheetState()
@@ -149,9 +156,19 @@ fun DashboardScreen(
     val shareSheetState = rememberModalBottomSheetState()
     val actionSheetState = rememberModalBottomSheetState()
     val moveSheetState = rememberModalBottomSheetState()
+    val customizeSheetState = rememberModalBottomSheetState()
+    val storageAnalyticsSheetState = rememberModalBottomSheetState()
 
     val unreadActivitiesCount = activities.count { !it.isRead }
     val scope = rememberCoroutineScope()
+
+    fun toggleSelection(fileId: String) {
+        selectedFileIds = if (selectedFileIds.contains(fileId)) {
+            selectedFileIds - fileId
+        } else {
+            selectedFileIds + fileId
+        }
+    }
 
     if (previewFile != null) {
         FilePreviewScreen(file = previewFile!!) {
@@ -249,18 +266,36 @@ fun DashboardScreen(
 
     Scaffold(
         topBar = {
-            Box(modifier = Modifier.statusBarsPadding()) {
-                DriveSearchBar(
-                    query = searchQuery,
-                    onQueryChange = { viewModel.onSearchQueryChange(it) },
-                    userMetadata = userMetadata,
-                    isDarkTheme = isDarkTheme,
-                    unreadCount = unreadActivitiesCount,
-                    isRefreshing = isRefreshing,
-                    onThemeToggle = onThemeToggle,
-                    onNotificationClick = { showActivitySheet = true },
-                    onProfileClick = { showProfileSheet = true }
-                )
+            Column {
+                Box(modifier = Modifier.statusBarsPadding()) {
+                    DriveSearchBar(
+                        query = searchQuery,
+                        onQueryChange = { viewModel.onSearchQueryChange(it) },
+                        userMetadata = userMetadata,
+                        isDarkTheme = isDarkTheme,
+                        unreadCount = unreadActivitiesCount,
+                        isRefreshing = isRefreshing,
+                        onThemeToggle = onThemeToggle,
+                        onNotificationClick = { showActivitySheet = true },
+                        onProfileClick = { showProfileSheet = true }
+                    )
+                }
+                
+                if (selectedFileIds.isNotEmpty()) {
+                    com.cloud.x.app.shared.ui.components.BatchActionBar(
+                        selectedCount = selectedFileIds.size,
+                        onClearSelection = { selectedFileIds = emptySet() },
+                        onBatchStar = { 
+                            viewModel.batchStarFiles(selectedFileIds.toList())
+                            selectedFileIds = emptySet()
+                        },
+                        onBatchMove = { isBatchMoving = true },
+                        onBatchDelete = {
+                            viewModel.batchDeleteFiles(selectedFileIds.toList())
+                            selectedFileIds = emptySet()
+                        }
+                    )
+                }
             }
         },
         bottomBar = {
@@ -356,12 +391,14 @@ fun DashboardScreen(
                         DashboardTab.Files -> DriveExplorerScreen(
                             viewModel = viewModel,
                             onFileClick = { 
-                                viewModel.onFileClick(it)
-                                if (it.fileType == "Folder") viewModel.navigateToFolder(it)
+                                if (selectedFileIds.isNotEmpty()) toggleSelection(it.fileId)
+                                else if (it.fileType == "Folder") viewModel.navigateToFolder(it)
                                 else previewFile = it 
                             },
                             onShare = { shareFile = it },
                             onMoreClick = { selectedFileForAction = it },
+                            onToggleSelection = { toggleSelection(it) },
+                            selectedFileIds = selectedFileIds,
                             contentPadding = screenPadding
                         )
                     }
@@ -391,6 +428,10 @@ fun DashboardScreen(
                 onEditProfileClick = {
                     showProfileSheet = false
                     showEditProfileDialog = true
+                },
+                onStorageClick = {
+                    showProfileSheet = false
+                    showStorageAnalyticsSheet = true
                 },
                 onAvatarClick = {
                     onPickAvatarClick { name, type, size, data ->
@@ -520,6 +561,10 @@ fun DashboardScreen(
                     fileToMove = selectedFileForAction
                     selectedFileForAction = null
                 },
+                onCustomize = {
+                    fileToCustomize = selectedFileForAction
+                    selectedFileForAction = null
+                },
                 onDelete = {
                     viewModel.deleteFile(selectedFileForAction!!)
                     selectedFileForAction = null
@@ -527,6 +572,24 @@ fun DashboardScreen(
                 onInfo = {
                     fileInfoToShow = selectedFileForAction
                     selectedFileForAction = null
+                }
+            )
+        }
+    }
+
+    if (isBatchMoving) {
+        ModalBottomSheet(
+            onDismissRequest = { isBatchMoving = false },
+            sheetState = moveSheetState
+        ) {
+            MoveToFolderSheet(
+                folders = filteredFiles.filter { it.fileType == "Folder" && !selectedFileIds.contains(it.fileId) },
+                onMoveTo = { targetId ->
+                    scope.launch {
+                        viewModel.batchMoveFiles(selectedFileIds.toList(), targetId)
+                        selectedFileIds = emptySet()
+                        isBatchMoving = false
+                    }
                 }
             )
         }
@@ -543,6 +606,23 @@ fun DashboardScreen(
                     viewModel.moveFile(fileToMove!!, targetId)
                     fileToMove = null
                 }
+            )
+        }
+    }
+
+    if (fileToCustomize != null) {
+        ModalBottomSheet(
+            onDismissRequest = { fileToCustomize = null },
+            sheetState = customizeSheetState,
+            containerColor = MaterialTheme.colorScheme.surface
+        ) {
+            FolderCustomizeSheet(
+                folder = fileToCustomize!!,
+                onSave = { color, icon ->
+                    viewModel.customizeFolder(fileToCustomize!!.fileId, color, icon)
+                    fileToCustomize = null
+                },
+                onDismiss = { fileToCustomize = null }
             )
         }
     }
@@ -593,6 +673,25 @@ fun DashboardScreen(
                 Button(onClick = { fileInfoToShow = null }) { Text("Close") }
             }
         )
+    }
+
+    if (showStorageAnalyticsSheet && userMetadata != null) {
+        ModalBottomSheet(
+            onDismissRequest = { showStorageAnalyticsSheet = false },
+            sheetState = storageAnalyticsSheetState
+        ) {
+            com.cloud.x.app.shared.ui.components.StorageAnalyticsSheet(
+                breakdown = storageBreakdown,
+                totalUsed = userMetadata!!.storageUsed,
+                totalAvailable = userMetadata!!.storageAvailable,
+                planName = userMetadata!!.subscriptionPlan,
+                onDismiss = { showStorageAnalyticsSheet = false },
+                onCleanTrash = { 
+                    showTrashScreen = true
+                    showStorageAnalyticsSheet = false
+                }
+            )
+        }
     }
 
     if (showEditProfileDialog) {
@@ -959,6 +1058,7 @@ fun ProfileSheetContent(
     onAvatarClick: () -> Unit = {},
     onChangePasswordClick: () -> Unit = {},
     onDevicesClick: () -> Unit = {},
+    onStorageClick: () -> Unit = {},
     onToggleBiometric: (Boolean) -> Unit = {},
     onUpdatePreference: (String, Any) -> Unit = { _, _ -> }
 ) {
@@ -1068,12 +1168,14 @@ fun ProfileSheetContent(
             }
 
             Spacer(modifier = Modifier.height(32.dp))
-            StorageBreakdownWidget(
-                breakdown = breakdown,
-                totalUsed = it.storageUsed,
-                totalAvailable = it.storageAvailable,
-                planName = it.subscriptionPlan
-            )
+            Box(modifier = Modifier.clickable { onStorageClick() }) {
+                StorageBreakdownWidget(
+                    breakdown = breakdown,
+                    totalUsed = it.storageUsed,
+                    totalAvailable = it.storageAvailable,
+                    planName = it.subscriptionPlan
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(32.dp))

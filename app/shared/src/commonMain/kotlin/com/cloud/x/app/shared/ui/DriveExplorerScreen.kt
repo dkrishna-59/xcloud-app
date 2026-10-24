@@ -15,9 +15,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import com.cloud.x.app.shared.viewmodel.DashboardViewModel
 import com.cloud.x.model.FileEntry
 
@@ -28,6 +32,8 @@ fun DriveExplorerScreen(
     onFileClick: (FileEntry) -> Unit,
     onShare: (FileEntry) -> Unit = {},
     onMoreClick: (FileEntry) -> Unit = {},
+    onToggleSelection: (String) -> Unit = {},
+    selectedFileIds: Set<String> = emptySet(),
     contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
     val filteredFiles by viewModel.filteredFiles.collectAsState()
@@ -83,7 +89,15 @@ fun DriveExplorerScreen(
                 modifier = Modifier.padding(horizontal = 16.dp)
             ) {
                 items(filteredFiles) { file ->
-                    FileGridItem(file, onClick = { onFileClick(file) })
+                    FileGridItem(
+                        file = file, 
+                        onClick = { 
+                            if (selectedFileIds.isNotEmpty()) onToggleSelection(file.fileId) 
+                            else onFileClick(file) 
+                        },
+                        onLongClick = { onToggleSelection(file.fileId) },
+                        isSelected = selectedFileIds.contains(file.fileId)
+                    )
                 }
             }
         } else {
@@ -93,7 +107,12 @@ fun DriveExplorerScreen(
                 items(filteredFiles) { file ->
                     FileListItem(
                         file = file,
-                        onClick = { onFileClick(file) },
+                        onClick = { 
+                            if (selectedFileIds.isNotEmpty()) onToggleSelection(file.fileId) 
+                            else onFileClick(file) 
+                        },
+                        onLongClick = { onToggleSelection(file.fileId) },
+                        isSelected = selectedFileIds.contains(file.fileId),
                         onShare = { onShare(file) },
                         onStar = { viewModel.toggleStar(file) },
                         onOffline = { viewModel.toggleOffline(file) },
@@ -105,30 +124,57 @@ fun DriveExplorerScreen(
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-fun FileGridItem(file: FileEntry, onClick: () -> Unit) {
+fun FileGridItem(
+    file: FileEntry, 
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
+    isSelected: Boolean = false
+) {
+    val activeColor = com.cloud.x.app.shared.ui.components.FOLDER_COLORS.find { it.first == file.folderColor }?.second ?: Color(0xFFFFB300)
+    val activeIcon = com.cloud.x.app.shared.ui.components.FOLDER_ICONS.find { it.first == file.folderIcon }?.second ?: Icons.Default.Folder
+
     Card(
-        modifier = Modifier.size(120.dp).clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+        modifier = Modifier.size(120.dp).combinedClickable(
+            onClick = onClick,
+            onLongClick = onLongClick
+        ),
+        colors = CardDefaults.cardColors(containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer),
+        border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                imageVector = getFileIcon(file.fileType),
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                file.fileName,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = if (file.fileType == "Folder") activeIcon else getFileIcon(file.fileType),
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = if (file.fileType == "Folder") activeColor else MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    file.fileName,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            if (isSelected) {
+                Icon(
+                    Icons.Default.CheckCircle,
+                    contentDescription = "Selected",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(8.dp)
+                        .size(20.dp)
+                        .background(MaterialTheme.colorScheme.surface, CircleShape)
+                )
+            }
         }
     }
 }

@@ -3,6 +3,10 @@ package com.cloud.x.app.shared.ui
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -19,10 +23,13 @@ import coil3.compose.AsyncImage
 import com.cloud.x.model.FileEntry
 import com.cloud.x.util.StorageQuotaManager
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FileListItem(
     file: FileEntry,
     onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
+    isSelected: Boolean = false,
     onShare: () -> Unit = {},
     onStar: () -> Unit = {},
     onOffline: () -> Unit = {},
@@ -31,9 +38,17 @@ fun FileListItem(
 ) {
     var showMenu by remember { mutableStateOf(false) }
     val isMedia = file.fileType.contains("Image", true) || file.fileType.contains("Video", true)
+    
+    val activeColor = com.cloud.x.app.shared.ui.components.FOLDER_COLORS.find { it.first == file.folderColor }?.second ?: Color(0xFFFFB300)
+    val activeIcon = com.cloud.x.app.shared.ui.components.FOLDER_ICONS.find { it.first == file.folderIcon }?.second ?: Icons.Default.Folder
 
     ListItem(
-        modifier = Modifier.clickable { onClick() },
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            ).background(if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else Color.Transparent),
         headlineContent = { 
             Text(
                 file.fileName, 
@@ -86,27 +101,37 @@ fun FileListItem(
             }
         },
         leadingContent = {
-            Surface(
-                modifier = Modifier.size(48.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    if (isMedia && file.downloadUrl.isNotEmpty()) {
-                        AsyncImage(
-                            model = file.downloadUrl,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    } else {
-                        Icon(
-                            imageVector = getFileIcon(file.fileType),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
+            Box {
+                Surface(
+                    modifier = Modifier.size(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (file.fileType == "Folder") activeColor.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        if (isMedia && file.downloadUrl.isNotEmpty()) {
+                            AsyncImage(
+                                model = file.downloadUrl,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else {
+                            Icon(
+                                imageVector = if (file.fileType == "Folder") activeIcon else getFileIcon(file.fileType),
+                                contentDescription = null,
+                                tint = if (file.fileType == "Folder") activeColor else MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
+                }
+                if (isSelected) {
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = "Selected",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.align(Alignment.BottomEnd).size(20.dp).background(MaterialTheme.colorScheme.surface, CircleShape)
+                    )
                 }
             }
         },

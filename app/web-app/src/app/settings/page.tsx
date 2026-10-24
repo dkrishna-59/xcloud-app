@@ -41,7 +41,7 @@ import { doc, updateDoc, collection, addDoc, deleteDoc, onSnapshot, query } from
 import { db, auth } from '@/lib/firebase';
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential, sendPasswordResetEmail } from 'firebase/auth';
 import { GoogleDriveBackupSettings } from '@/components/dashboard/GoogleDriveBackupSettings';
-import { registerPasskey, isPasskeySupported } from '@/lib/webauthnService';
+import { SettingsPasskeySection } from '@/components/dashboard/SettingsPasskeySection';
 import { motion, AnimatePresence } from 'framer-motion';
 import pkg from '../../../package.json';
 
@@ -71,54 +71,6 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<'general' | 'devices' | 'connected'>('general');
   const [currentNodeInfo, setCurrentNodeInfo] = useState({ ip: 'Detecting...', location: 'Locating...', browser: 'Detecting...' });
   const [devices, setDevices] = useState<any[]>([]);
-  const [passkeys, setPasskeys] = useState<any[]>([]);
-  const [isRegisteringPasskey, setIsRegisteringPasskey] = useState(false);
-
-  React.useEffect(() => {
-    if (!user) return;
-    const q = query(collection(db, 'users', user.uid, 'passkeys'));
-    const unsub = onSnapshot(q, (snapshot) => {
-      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setPasskeys(list);
-    });
-    return () => unsub();
-  }, [user]);
-
-  const handleRegisterPasskey = async () => {
-    if (!user) return;
-    if (!isPasskeySupported()) {
-      showToast("Passkeys are not supported in this browser.", "error");
-      return;
-    }
-
-    setIsRegisteringPasskey(true);
-    const toastId = showToast("Registering new passkey...", "loading");
-    try {
-      await registerPasskey(user.uid, user.email || 'user@xcloud.app', user.displayName || 'XCloud User');
-      hideToast(toastId);
-      showToast("Passkey registered successfully", "success");
-    } catch (err: any) {
-      hideToast(toastId);
-      showToast(err.message || "Passkey registration failed", "error");
-    } finally {
-      setIsRegisteringPasskey(false);
-    }
-  };
-
-  const handleDeletePasskey = async (passkeyId: string) => {
-    if (!user) return;
-    if (confirm("Revoke this passkey? You will no longer be able to use it to sign in.")) {
-      const toastId = showToast("Revoking passkey...", "loading");
-      try {
-        await deleteDoc(doc(db, 'users', user.uid, 'passkeys', passkeyId));
-        hideToast(toastId);
-        showToast("Passkey revoked successfully", "success");
-      } catch (err: any) {
-        hideToast(toastId);
-        showToast(err.message, "error");
-      }
-    }
-  };
 
   React.useEffect(() => {
     if (!user) return;
@@ -976,63 +928,7 @@ export default function SettingsPage() {
             <GoogleDriveBackupSettings />
           </div>
 
-          {/* Passkeys & Biometrics Management Section (Material Design 3 Compliant) */}
-          <div className="bg-surface border border-outline/10 shadow-[0_4px_20px_rgba(0,0,0,0.08)] rounded-[2.5rem] p-10 space-y-6">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border-b border-outline/5 pb-8">
-              <div className="flex items-center gap-5">
-                <div className="w-16 h-16 rounded-3xl flex items-center justify-center shadow-md" style={{ backgroundColor: '#6750A4', color: '#FFFFFF' }}>
-                  <KeyRound size={32} />
-                </div>
-                <div>
-                  <h3 className="text-xl font-black text-on-surface tracking-tight">Passkeys & Biometrics</h3>
-                  <p className="text-xs text-on-surface-variant font-medium mt-1">Manage passwordless authenticator devices (Touch ID, Windows Hello, Face ID, Security Keys).</p>
-                </div>
-              </div>
-
-              <button
-                onClick={handleRegisterPasskey}
-                disabled={isRegisteringPasskey}
-                style={{ backgroundColor: '#6750A4', color: '#FFFFFF' }}
-                className="px-8 py-4 rounded-full font-black text-xs uppercase tracking-[0.2em] shadow-[0_4px_12px_rgba(103,80,164,0.3)] hover:opacity-90 transition-all flex items-center gap-3 active:scale-95 disabled:opacity-50 shrink-0"
-              >
-                {isRegisteringPasskey ? <Loader2 className="animate-spin" size={18} /> : <ShieldCheck size={18} style={{ color: '#D0BCFF' }} />}
-                Register New Passkey
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <h4 className="text-[10px] font-black text-outline uppercase tracking-[0.3em]">Registered Authenticator Nodes</h4>
-              {passkeys.length === 0 ? (
-                <div className="p-16 text-center bg-surface-variant/20 border-2 border-dashed border-outline/10 rounded-[2rem] text-on-surface-variant text-xs font-medium italic">
-                  No passkeys registered yet. Register your biometric or hardware security key above for instant passwordless login.
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-4">
-                  {passkeys.map(pk => (
-                    <div key={pk.id} className="p-6 bg-surface-variant/20 border border-outline/10 rounded-[2rem] flex items-center justify-between gap-4 group hover:border-[#6750A4]/30 transition-all shadow-sm">
-                      <div className="flex items-center gap-5 min-w-0">
-                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-inner" style={{ backgroundColor: 'rgba(103,80,164,0.15)', color: '#6750A4' }}>
-                          <KeyRound size={24} />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-black text-on-surface truncate">{pk.deviceInfo || 'WebAuthn Authenticator Device'}</p>
-                          <p className="text-[10px] font-bold text-outline uppercase tracking-wider mt-1">
-                            Credential ID: {pk.credentialId.substring(0, 24)}... • Registered: {pk.createdAt ? new Date(pk.createdAt).toLocaleDateString() : 'Recently'}
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleDeletePasskey(pk.id)}
-                        className="px-5 py-2.5 bg-error-container/20 hover:bg-error-container/40 text-error rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm active:scale-95 shrink-0"
-                      >
-                        Revoke
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+          <SettingsPasskeySection />
         </div>
       )}
     </div>

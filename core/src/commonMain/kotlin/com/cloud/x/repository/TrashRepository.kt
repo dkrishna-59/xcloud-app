@@ -56,6 +56,17 @@ class TrashRepository {
         }
     }
 
+    suspend fun batchMoveToTrash(userId: String, fileIds: List<String>): Result<Unit> {
+        return try {
+            for (fileId in fileIds) {
+                moveToTrash(userId, fileId)
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     /**
      * Restore from Trash: Reverses soft delete.
      */

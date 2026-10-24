@@ -385,15 +385,37 @@ class FileRepository {
             if (oldParentId != targetFolderId) {
                 // Remove from old parent
                 if (oldParentId != "root") {
-                    MetadataManager.updateParentFolderSizes(userId, oldParentId, -fileData.fileSize)
+                    updateParentFolderSizes(userId, oldParentId, -fileData.fileSize)
                 }
                 // Add to new parent
                 if (targetFolderId != "root") {
-                    MetadataManager.updateParentFolderSizes(userId, targetFolderId, fileData.fileSize)
+                    updateParentFolderSizes(userId, targetFolderId, fileData.fileSize)
                 }
             }
 
             activityRepository.logActivity(userId, "MOVE", "Relocated to another folder", fileData.fileName)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun batchMoveFiles(userId: String, fileIds: List<String>, targetFolderId: String): Result<Unit> {
+        return try {
+            for (fileId in fileIds) {
+                moveFile(userId, fileId, targetFolderId)
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun batchStarFiles(userId: String, fileIds: List<String>): Result<Unit> {
+        return try {
+            for (fileId in fileIds) {
+                toggleStar(userId, fileId, true)
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -504,6 +526,20 @@ class FileRepository {
                     "isShared" to updatedSharedWith.isNotEmpty()
                 )
             }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun customizeFolder(userId: String, folderId: String, color: String, icon: String): Result<Unit> {
+        return try {
+            firestore.collection("users").document(userId)
+                .collection("user_files").document(folderId)
+                .update(
+                    "folderColor" to color,
+                    "folderIcon" to icon
+                )
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

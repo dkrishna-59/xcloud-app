@@ -289,6 +289,34 @@ class DashboardViewModel(
         }
     }
 
+    fun batchDeleteFiles(fileIds: List<String>) {
+        val user = authRepository.getCurrentUser() ?: return
+        viewModelScope.launch {
+            trashRepository.batchMoveToTrash(user.uid, fileIds)
+        }
+    }
+
+    fun batchMoveFiles(fileIds: List<String>, targetFolderId: String) {
+        val user = authRepository.getCurrentUser() ?: return
+        viewModelScope.launch {
+            fileRepository.batchMoveFiles(user.uid, fileIds, targetFolderId)
+        }
+    }
+
+    fun batchStarFiles(fileIds: List<String>) {
+        val user = authRepository.getCurrentUser() ?: return
+        viewModelScope.launch {
+            fileRepository.batchStarFiles(user.uid, fileIds)
+        }
+    }
+
+    fun customizeFolder(folderId: String, color: String, icon: String) {
+        val user = authRepository.getCurrentUser() ?: return
+        viewModelScope.launch {
+            fileRepository.customizeFolder(user.uid, folderId, color, icon)
+        }
+    }
+
     fun markActivitiesAsRead() {
         val user = authRepository.getCurrentUser() ?: return
         viewModelScope.launch {
