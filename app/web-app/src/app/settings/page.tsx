@@ -531,7 +531,7 @@ export default function SettingsPage() {
              onClick={() => setActiveTab('general')}
              className={cn(
                "px-6 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all",
-               activeTab === 'general' ? "bg-[#6750A4] text-white shadow-[0_1px_3px_1px_rgba(0,0,0,0.15)]" : "text-[#49454F] dark:text-[#CAC4D0] hover:bg-[#EADDFF]/50"
+               activeTab === 'general' ? "bg-[#6750A4] text-white shadow-[0_1px_3px_1px_rgba(0,0,0,0.15)]" : "text-[#49454F] dark:text-[#CAC4D0] hover:bg-[#EADDFF]/50 dark:hover:bg-[#36343B]"
              )}
            >
              General
@@ -540,7 +540,7 @@ export default function SettingsPage() {
              onClick={() => setActiveTab('devices')}
              className={cn(
                "px-6 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all",
-               activeTab === 'devices' ? "bg-[#6750A4] text-white shadow-[0_1px_3px_1px_rgba(0,0,0,0.15)]" : "text-[#49454F] dark:text-[#CAC4D0] hover:bg-[#EADDFF]/50"
+               activeTab === 'devices' ? "bg-[#6750A4] text-white shadow-[0_1px_3px_1px_rgba(0,0,0,0.15)]" : "text-[#49454F] dark:text-[#CAC4D0] hover:bg-[#EADDFF]/50 dark:hover:bg-[#36343B]"
              )}
            >
              Devices
@@ -549,7 +549,7 @@ export default function SettingsPage() {
              onClick={() => setActiveTab('connected')}
              className={cn(
                "px-6 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all",
-               activeTab === 'connected' ? "bg-[#6750A4] text-white shadow-[0_1px_3px_1px_rgba(0,0,0,0.15)]" : "text-[#49454F] dark:text-[#CAC4D0] hover:bg-[#EADDFF]/50"
+               activeTab === 'connected' ? "bg-[#6750A4] text-white shadow-[0_1px_3px_1px_rgba(0,0,0,0.15)]" : "text-[#49454F] dark:text-[#CAC4D0] hover:bg-[#EADDFF]/50 dark:hover:bg-[#36343B]"
              )}
            >
              Connected Accounts
@@ -561,17 +561,15 @@ export default function SettingsPage() {
         <div className="grid grid-cols-1 gap-8 pb-20">
 
         {/* Profile Section */}
-        <section className="bg-surface-variant/10 border border-outline/5 rounded-[1.5rem] p-8 shadow-[0_1px_3px_1px_rgba(0,0,0,0.15)] relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-[#6750A4]/5 rounded-full blur-3xl -mr-32 -mt-32 group-hover:scale-110 transition-transform duration-1000" />
-
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-8 relative z-10">
+        <section className="bg-[#FEF7FF] dark:bg-[#141218] border border-[#EADDFF]/50 dark:border-[#4A4458]/50 rounded-[1.5rem] p-8 shadow-[0_1px_3px_1px_rgba(0,0,0,0.15)] space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#CAC4D0]/30 dark:border-[#49454F]/30 pb-6">
             <div className="flex items-center gap-4 min-w-0">
               <div className="p-3.5 bg-[#EADDFF] dark:bg-[#4F378B] text-[#21005D] dark:text-[#EADDFF] rounded-[1rem] shadow-sm shrink-0">
                 <User size={24} />
               </div>
               <div className="min-w-0">
                 <h2 className="text-xl font-bold text-[#1D1B20] dark:text-[#E6E0E9] truncate">Identity</h2>
-                <p className="text-xs text-[#49454F] dark:text-[#CAC4D0] font-medium uppercase tracking-wider truncate">Public profile data</p>
+                <p className="text-xs text-[#49454F] dark:text-[#CAC4D0] font-medium mt-0.5 truncate">Public profile data</p>
               </div>
             </div>
             <button
@@ -579,40 +577,40 @@ export default function SettingsPage() {
                 setEditName(userMetadata.name);
                 setIsEditProfileOpen(true);
               }}
-              className="px-6 py-2.5 bg-[#6750A4]/10 text-[#6750A4] dark:text-[#D0BCFF] rounded-full text-xs font-bold hover:bg-[#6750A4] hover:text-white transition-all active:scale-95 shrink-0"
+              className="px-6 py-2.5 bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] rounded-full text-xs font-bold hover:opacity-95 transition-all active:scale-95 shrink-0 shadow-[0_1px_3px_1px_rgba(0,0,0,0.15)]"
             >
               Edit Profile
             </button>
           </div>
 
-          <div className="flex flex-col md:flex-row items-center gap-8 p-6 bg-surface rounded-[1.5rem] border border-outline/10 shadow-sm relative z-10">
-            <div className="relative group">
+          <div className="flex flex-col md:flex-row items-center gap-6 p-6 bg-[#F3EDF7] dark:bg-[#2B2930] rounded-[1rem] border border-[#EADDFF]/40 dark:border-[#4A4458]/40 shadow-sm">
+            <div className="relative group shrink-0">
                {userMetadata?.profilePictureUrl ? (
-                 <img src={userMetadata.profilePictureUrl} className="w-32 h-28 rounded-[2rem] border-4 border-surface shadow-2xl object-cover" alt="Profile" />
+                 <img src={userMetadata.profilePictureUrl} className="w-24 h-24 rounded-[1rem] border-2 border-surface shadow-md object-cover" alt="Profile" />
                ) : (
-                 <div className="w-32 h-28 rounded-[2rem] bg-primary-container text-on-primary-container flex items-center justify-center text-5xl font-black shadow-2xl">
+                 <div className="w-24 h-24 rounded-[1rem] bg-[#EADDFF] dark:bg-[#4F378B] text-[#21005D] dark:text-[#EADDFF] flex items-center justify-center text-3xl font-bold shadow-md">
                    {userMetadata?.name?.charAt(0)}
                  </div>
                )}
             </div>
-            <div className="text-center md:text-left space-y-2 flex-1">
-              <div className="flex flex-col md:flex-row md:items-center gap-4">
-                <p className="font-black text-on-surface text-3xl tracking-tight">{userMetadata?.name}</p>
-                <span className="w-fit text-[10px] font-mono bg-surface-variant px-3 py-1.5 rounded-full text-on-surface-variant font-bold border border-outline/10">ID: {userMetadata.displayId}</span>
+            <div className="text-center md:text-left space-y-2 flex-1 min-w-0">
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
+                <p className="font-bold text-[#1D1B20] dark:text-[#E6E0E9] text-xl truncate">{userMetadata?.name}</p>
+                <span className="text-[10px] font-mono bg-[#EADDFF]/50 dark:bg-[#4F378B]/50 px-2.5 py-1 rounded-full text-[#21005D] dark:text-[#EADDFF] font-bold border border-[#EADDFF]">ID: {userMetadata.displayId}</span>
               </div>
-              <p className="text-on-surface-variant font-bold text-sm opacity-70">{user.email}</p>
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-4">
-                <span className="text-[10px] font-black text-on-primary bg-primary px-3 py-1 rounded-full uppercase tracking-widest shadow-md">
+              <p className="text-[#49454F] dark:text-[#CAC4D0] font-medium text-xs truncate">{user.email}</p>
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-2">
+                <span className="text-[10px] font-bold text-white bg-[#6750A4] dark:bg-[#D0BCFF] dark:text-[#381E72] px-2.5 py-1 rounded-full uppercase tracking-wider">
                    {userMetadata?.provider?.split('.')[0] || 'Direct'} Verified
                 </span>
                 {userMetadata.phoneNumber && (
-                  <span className="text-[10px] font-black text-on-surface-variant bg-surface-variant px-3 py-1 rounded-full flex items-center gap-2 uppercase tracking-widest border border-outline/5">
-                    <Phone size={10} className="text-primary" /> {userMetadata.phoneNumber}
+                  <span className="text-[10px] font-bold text-[#49454F] dark:text-[#CAC4D0] bg-[#FEF7FF] dark:bg-[#141218] px-2.5 py-1 rounded-full flex items-center gap-1.5 border border-[#CAC4D0]/30">
+                    <Phone size={10} className="text-[#6750A4]" /> {userMetadata.phoneNumber}
                   </span>
                 )}
                 {userMetadata.dateOfBirth && (
-                  <span className="text-[10px] font-black text-on-surface-variant bg-surface-variant px-3 py-1 rounded-full flex items-center gap-2 uppercase tracking-widest border border-outline/5">
-                    <Calendar size={10} className="text-primary" /> {userMetadata.dateOfBirth}
+                  <span className="text-[10px] font-bold text-[#49454F] dark:text-[#CAC4D0] bg-[#FEF7FF] dark:bg-[#141218] px-2.5 py-1 rounded-full flex items-center gap-1.5 border border-[#CAC4D0]/30">
+                    <Calendar size={10} className="text-[#6750A4]" /> {userMetadata.dateOfBirth}
                   </span>
                 )}
               </div>
