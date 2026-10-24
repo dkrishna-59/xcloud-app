@@ -703,14 +703,14 @@ export default function SettingsPage() {
            </div>
 
            {/* Security Section */}
-           <div className="bg-surface-variant/10 border border-outline/5 rounded-[3rem] p-10 shadow-sm">
-              <div className="flex items-center gap-5 mb-10">
-                <div className="p-4 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-3xl shadow-sm">
-                  <Shield size={28} />
+           <div className="bg-[#FEF7FF] dark:bg-[#141218] border border-[#EADDFF]/50 dark:border-[#4A4458]/50 rounded-[1.5rem] p-8 shadow-[0_1px_3px_1px_rgba(0,0,0,0.15)]">
+              <div className="flex items-center gap-4 mb-6 border-b border-[#CAC4D0]/30 dark:border-[#49454F]/30 pb-6">
+                <div className="p-3.5 bg-[#EADDFF] dark:bg-[#4F378B] text-[#21005D] dark:text-[#EADDFF] rounded-[1rem] shadow-sm shrink-0">
+                  <Shield size={24} />
                 </div>
-                <div>
-                  <h3 className="text-headline-small font-black text-on-surface">Security</h3>
-                  <p className="text-body-small text-on-surface-variant font-bold uppercase tracking-widest">Protocols & Alerts</p>
+                <div className="min-w-0">
+                  <h3 className="text-xl font-bold text-[#1D1B20] dark:text-[#E6E0E9] truncate">Security</h3>
+                  <p className="text-xs text-[#49454F] dark:text-[#CAC4D0] font-medium mt-0.5 truncate">Protocols & Alerts</p>
                 </div>
               </div>
               <div className="space-y-3">
