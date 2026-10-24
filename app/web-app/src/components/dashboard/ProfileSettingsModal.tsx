@@ -109,17 +109,17 @@ export default function ProfileSettingsModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.2, ease: "easeOut" }}
-          className="relative w-full max-w-lg my-auto overflow-hidden rounded-3xl bg-gradient-to-b from-[#161922] to-[#111318] border border-white/10 shadow-2xl shadow-black/90 text-white z-10"
+          className="relative w-full max-w-lg my-auto overflow-hidden rounded-[1.5rem] bg-[#FEF7FF] dark:bg-[#141218] border border-[#EADDFF]/50 dark:border-[#4A4458]/50 shadow-[0_1px_3px_1px_rgba(0,0,0,0.15)] text-[#1D1B20] dark:text-[#E6E0E9] z-10"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-white/5">
+          <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-[#CAC4D0]/30 dark:border-[#49454F]/30">
             <div>
-              <h2 className="text-xl font-bold tracking-tight text-white">Profile Settings</h2>
-              <p className="text-xs text-neutral-400 mt-0.5">Manage your personal details and account info</p>
+              <h2 className="text-xl font-bold tracking-tight text-[#1D1B20] dark:text-[#E6E0E9]">Profile Settings</h2>
+              <p className="text-xs text-[#49454F] dark:text-[#CAC4D0] mt-0.5">Manage your personal details and account info</p>
             </div>
             <button
               onClick={onClose}
-              className="p-2 rounded-xl text-neutral-400 hover:text-white hover:bg-white/5 transition-colors"
+              className="p-2 rounded-xl text-[#49454F] dark:text-[#CAC4D0] hover:bg-[#EADDFF]/30 dark:hover:bg-[#4A4458]/30 transition-colors"
               aria-label="Close modal"
             >
               <X className="w-5 h-5" />
@@ -131,18 +131,18 @@ export default function ProfileSettingsModal({
             {/* Avatar Section */}
             <div className="flex flex-col items-center justify-center space-y-3 pt-2">
               <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                <div className="w-24 h-24 rounded-2xl overflow-hidden ring-2 ring-indigo-400/40 group-hover:ring-indigo-400 transition-all duration-300 bg-neutral-800 flex items-center justify-center shadow-lg">
+                <div className="w-24 h-24 rounded-[1rem] overflow-hidden ring-2 ring-[#6750A4]/40 group-hover:ring-[#6750A4] transition-all duration-300 bg-[#EADDFF] dark:bg-[#4F378B] flex items-center justify-center shadow-md">
                   {avatarPreview ? (
                     <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-tr from-indigo-900 to-purple-900 flex items-center justify-center text-2xl font-bold text-indigo-200">
+                    <div className="w-full h-full bg-[#EADDFF] dark:bg-[#4F378B] flex items-center justify-center text-2xl font-bold text-[#21005D] dark:text-[#EADDFF]">
                       {displayName.charAt(0)}
                     </div>
                   )}
                 </div>
                 {/* Hover Overlay */}
-                <div className="absolute inset-0 rounded-2xl bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center text-white">
-                  <Camera className="w-6 h-6 mb-1 text-indigo-300" />
+                <div className="absolute inset-0 rounded-[1rem] bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center text-white">
+                  <Camera className="w-6 h-6 mb-1 text-[#D0BCFF]" />
                   <span className="text-[10px] font-medium tracking-wide">Change</span>
                 </div>
               </div>
@@ -153,16 +153,16 @@ export default function ProfileSettingsModal({
                 className="hidden"
                 onChange={handleFileChange}
               />
-              <span className="text-xs text-neutral-400">Click avatar to upload photo (max 5MB)</span>
+              <span className="text-xs text-[#49454F] dark:text-[#CAC4D0]">Click avatar to upload photo (max 5MB)</span>
             </div>
 
             <div className="space-y-4">
               {/* USER ID (Read-only) */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold tracking-wider text-neutral-400 uppercase">
+                <label className="block text-xs font-semibold tracking-wider text-[#6750A4] dark:text-[#D0BCFF] uppercase">
                   User ID
                 </label>
-                <div className="flex items-center justify-between bg-neutral-900/80 border border-neutral-800 rounded-xl px-4 py-2.5 text-neutral-400 text-sm select-all">
+                <div className="flex items-center justify-between bg-[#F4EFF4] dark:bg-[#1D1B20] border border-[#CAC4D0]/30 dark:border-[#49454F]/30 rounded-xl px-4 py-2.5 text-[#49454F] dark:text-[#CAC4D0] text-sm select-all">
                   <span className="font-mono">{userIdDisplay}</span>
                   <Lock className="w-4 h-4 text-neutral-500" />
                 </div>
@@ -170,11 +170,11 @@ export default function ProfileSettingsModal({
 
               {/* DISPLAY NAME */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold tracking-wider text-neutral-400 uppercase">
+                <label className="block text-xs font-semibold tracking-wider text-[#6750A4] dark:text-[#D0BCFF] uppercase">
                   Display Name
                 </label>
                 <div className="relative">
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-neutral-500">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-[#49454F] dark:text-[#CAC4D0]">
                     <User className="w-4 h-4" />
                   </span>
                   <input
@@ -183,7 +183,7 @@ export default function ProfileSettingsModal({
                     onChange={(e) => setDisplayName(e.target.value)}
                     required
                     placeholder="Enter your display name"
-                    className="w-full bg-neutral-800/60 border border-neutral-700/60 rounded-xl pl-10 pr-4 py-2.5 text-white placeholder-neutral-500 focus:ring-2 focus:ring-indigo-400 focus:outline-none transition-all text-sm"
+                    className="w-full bg-[#F3EDF7] dark:bg-[#2B2930] border border-[#CAC4D0]/30 dark:border-[#4A4458]/30 rounded-xl pl-10 pr-4 py-2.5 text-[#1D1B20] dark:text-[#E6E0E9] placeholder-[#49454F] dark:placeholder-[#CAC4D0] focus:ring-2 focus:ring-[#6750A4] focus:outline-none transition-all text-sm font-medium"
                   />
                 </div>
               </div>
@@ -192,11 +192,11 @@ export default function ProfileSettingsModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* PHONE */}
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold tracking-wider text-neutral-400 uppercase">
+                  <label className="block text-xs font-semibold tracking-wider text-[#6750A4] dark:text-[#D0BCFF] uppercase">
                     Phone
                   </label>
                   <div className="relative">
-                    <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-neutral-500">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-[#49454F] dark:text-[#CAC4D0]">
                       <Phone className="w-4 h-4" />
                     </span>
                     <input
@@ -204,25 +204,25 @@ export default function ProfileSettingsModal({
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="+1 (555) 000-0000"
-                      className="w-full bg-neutral-800/60 border border-neutral-700/60 rounded-xl pl-10 pr-4 py-2.5 text-white placeholder-neutral-500 focus:ring-2 focus:ring-indigo-400 focus:outline-none transition-all text-sm"
+                      className="w-full bg-[#F3EDF7] dark:bg-[#2B2930] border border-[#CAC4D0]/30 dark:border-[#4A4458]/30 rounded-xl pl-10 pr-4 py-2.5 text-[#1D1B20] dark:text-[#E6E0E9] placeholder-[#49454F] dark:placeholder-[#CAC4D0] focus:ring-2 focus:ring-[#6750A4] focus:outline-none transition-all text-sm font-medium"
                     />
                   </div>
                 </div>
 
                 {/* BIRTH DATE */}
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold tracking-wider text-neutral-400 uppercase">
+                  <label className="block text-xs font-semibold tracking-wider text-[#6750A4] dark:text-[#D0BCFF] uppercase">
                     Birth Date
                   </label>
                   <div className="relative">
-                    <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-neutral-500">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-[#49454F] dark:text-[#CAC4D0]">
                       <Calendar className="w-4 h-4" />
                     </span>
                     <input
                       type="date"
                       value={birthDate}
                       onChange={(e) => setBirthDate(e.target.value)}
-                      className="w-full bg-neutral-800/60 border border-neutral-700/60 rounded-xl pl-10 pr-4 py-2.5 text-white placeholder-neutral-500 focus:ring-2 focus:ring-indigo-400 focus:outline-none transition-all text-sm [color-scheme:dark]"
+                      className="w-full bg-[#F3EDF7] dark:bg-[#2B2930] border border-[#CAC4D0]/30 dark:border-[#4A4458]/30 rounded-xl pl-10 pr-4 py-2.5 text-[#1D1B20] dark:text-[#E6E0E9] placeholder-[#49454F] dark:placeholder-[#CAC4D0] focus:ring-2 focus:ring-[#6750A4] focus:outline-none transition-all text-sm font-medium [color-scheme:dark]"
                     />
                   </div>
                 </div>
@@ -231,25 +231,25 @@ export default function ProfileSettingsModal({
               {/* EMAIL (IMMUTABLE) */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="block text-xs font-semibold tracking-wider text-neutral-400 uppercase">
+                  <label className="block text-xs font-semibold tracking-wider text-[#6750A4] dark:text-[#D0BCFF] uppercase">
                     Email Address
                   </label>
-                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-neutral-800 text-neutral-400 border border-neutral-700/50">
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#EADDFF] dark:bg-[#4F378B] text-[#21005D] dark:text-[#EADDFF]">
                     Immutable
                   </span>
                 </div>
                 <div className="relative">
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-neutral-500">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-[#49454F] dark:text-[#CAC4D0]">
                     <Mail className="w-4 h-4" />
                   </span>
                   <input
                     type="email"
                     value={emailDisplay}
                     disabled
-                    className="w-full bg-neutral-900/50 border border-neutral-800/80 rounded-xl pl-10 pr-4 py-2.5 text-neutral-400 text-sm cursor-not-allowed select-none"
+                    className="w-full bg-[#F4EFF4] dark:bg-[#1D1B20] border border-[#CAC4D0]/30 dark:border-[#4A4458]/30 rounded-xl pl-10 pr-4 py-2.5 text-[#49454F] dark:text-[#CAC4D0] text-sm cursor-not-allowed select-none font-medium"
                   />
                 </div>
-                <p className="text-[11px] text-neutral-500">Your email address is linked to your authentication provider and cannot be altered.</p>
+                <p className="text-[11px] text-[#49454F] dark:text-[#CAC4D0]">Your email address is linked to your authentication provider and cannot be altered.</p>
               </div>
             </div>
 
@@ -258,21 +258,21 @@ export default function ProfileSettingsModal({
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-xl font-medium text-neutral-900 bg-[#a5b4fc] hover:bg-[#93b4fd] active:scale-[0.99] transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-full font-bold text-white dark:text-[#381E72] bg-[#6750A4] dark:bg-[#D0BCFF] hover:opacity-90 active:scale-[0.99] transition-all shadow-[0_1px_3px_1px_rgba(0,0,0,0.15)] disabled:opacity-50 disabled:cursor-not-allowed text-xs uppercase tracking-[0.1em]"
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin text-neutral-900" />
+                    <Loader2 className="w-5 h-5 animate-spin text-white dark:text-[#381E72]" />
                     <span>Saving Changes...</span>
                   </>
                 ) : successMessage ? (
                   <>
-                    <Check className="w-5 h-5 text-neutral-900" />
+                    <Check className="w-5 h-5 text-white dark:text-[#381E72]" />
                     <span>Profile Updated!</span>
                   </>
                 ) : (
                   <>
-                    <Save className="w-5 h-5 text-neutral-900" />
+                    <Save className="w-5 h-5 text-white dark:text-[#381E72]" />
                     <span>Update Profile</span>
                   </>
                 )}
