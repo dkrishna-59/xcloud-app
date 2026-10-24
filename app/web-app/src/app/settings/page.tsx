@@ -561,7 +561,7 @@ export default function SettingsPage() {
         <div className="grid grid-cols-1 gap-8 pb-20">
 
         {/* Profile Section */}
-        <section className="bg-[#FEF7FF] dark:bg-[#141218] border border-[#EADDFF]/50 dark:border-[#4A4458]/50 rounded-[1.5rem] p-8 shadow-[0_1px_3px_1px_rgba(0,0,0,0.15)] space-y-6">
+        <section className="bg-[#FEF7FF] dark:bg-[#141218] border border-[#EADDFF]/50 dark:border-[#4A4458]/50 rounded-[1.5rem] p-8 shadow-[0_1px_3px_1px_rgba(0,0,0,0.15)] flex flex-col gap-6">
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#CAC4D0]/30 dark:border-[#49454F]/30 pb-6">
             <div className="flex items-center gap-4 min-w-0">
               <div className="p-3.5 bg-[#EADDFF] dark:bg-[#4F378B] text-[#21005D] dark:text-[#EADDFF] rounded-[1rem] shadow-sm shrink-0">
@@ -583,7 +583,7 @@ export default function SettingsPage() {
             </button>
           </div>
 
-          <div className="flex flex-col md:flex-row items-center gap-6 p-6 bg-[#F3EDF7] dark:bg-[#2B2930] rounded-[1rem] border border-[#EADDFF]/40 dark:border-[#4A4458]/40 shadow-sm">
+          <div className="flex flex-col md:flex-row items-center gap-6 min-w-0">
             <div className="relative group shrink-0">
                {userMetadata?.profilePictureUrl ? (
                  <img src={userMetadata.profilePictureUrl} className="w-24 h-24 rounded-[1rem] border-2 border-surface shadow-md object-cover" alt="Profile" />
@@ -604,12 +604,12 @@ export default function SettingsPage() {
                    {userMetadata?.provider?.split('.')[0] || 'Direct'} Verified
                 </span>
                 {userMetadata.phoneNumber && (
-                  <span className="text-[10px] font-bold text-[#49454F] dark:text-[#CAC4D0] bg-[#FEF7FF] dark:bg-[#141218] px-2.5 py-1 rounded-full flex items-center gap-1.5 border border-[#CAC4D0]/30">
+                  <span className="text-[10px] font-bold text-[#49454F] dark:text-[#CAC4D0] bg-[#F3EDF7] dark:bg-[#2B2930] px-2.5 py-1 rounded-full flex items-center gap-1.5 border border-[#CAC4D0]/30">
                     <Phone size={10} className="text-[#6750A4]" /> {userMetadata.phoneNumber}
                   </span>
                 )}
                 {userMetadata.dateOfBirth && (
-                  <span className="text-[10px] font-bold text-[#49454F] dark:text-[#CAC4D0] bg-[#FEF7FF] dark:bg-[#141218] px-2.5 py-1 rounded-full flex items-center gap-1.5 border border-[#CAC4D0]/30">
+                  <span className="text-[10px] font-bold text-[#49454F] dark:text-[#CAC4D0] bg-[#F3EDF7] dark:bg-[#2B2930] px-2.5 py-1 rounded-full flex items-center gap-1.5 border border-[#CAC4D0]/30">
                     <Calendar size={10} className="text-[#6750A4]" /> {userMetadata.dateOfBirth}
                   </span>
                 )}
