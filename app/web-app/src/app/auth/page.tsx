@@ -35,8 +35,10 @@ export default function AuthPage() {
     setError(null);
     try {
       const { customToken } = await loginWithPasskey();
-      if (auth) {
+      if (auth && customToken) {
         await signInWithCustomToken(auth, customToken);
+      } else {
+        throw new Error("Authentication token missing.");
       }
     } catch (err: any) {
       setError(err.message || "Passkey sign-in failed");
