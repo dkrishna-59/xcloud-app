@@ -166,24 +166,24 @@ export const GoogleDriveBackupSettings = () => {
   };
 
   return (
-    <div className="bg-white/[0.03] border border-white/10 rounded-[2.5rem] p-8 space-y-8 text-white">
-      <div className="flex items-center justify-between border-b border-white/5 pb-6">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-blue-500/20 text-blue-400 rounded-2xl flex items-center justify-center shadow-inner">
+    <div className="bg-[#FEF7FF] dark:bg-[#141218] border border-[#EADDFF]/50 dark:border-[#4A4458]/50 shadow-[0_1px_3px_1px_rgba(0,0,0,0.15)] rounded-[1.5rem] p-8 space-y-8 text-[#1D1B20] dark:text-[#E6E0E9]">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#CAC4D0]/30 dark:border-[#49454F]/30 pb-6">
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="w-14 h-14 bg-[#EADDFF] dark:bg-[#4F378B] text-[#21005D] dark:text-[#EADDFF] rounded-[1rem] flex items-center justify-center shadow-inner shrink-0">
             <HardDrive size={28} />
           </div>
-          <div>
-            <h3 className="text-lg font-black tracking-tight">Google Drive Connected Backup</h3>
-            <p className="text-xs text-white/50">Configure automated cloud-to-cloud vault backups and synchronization.</p>
+          <div className="min-w-0">
+            <h3 className="text-lg font-bold tracking-tight text-[#1D1B20] dark:text-[#E6E0E9] truncate">Google Drive Connected Backup</h3>
+            <p className="text-xs text-[#49454F] dark:text-[#CAC4D0] font-medium mt-0.5 truncate">Configure automated cloud-to-cloud vault backups and synchronization.</p>
           </div>
         </div>
 
         {isConnected ? (
-          <button onClick={handleDisconnect} className="px-5 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl text-xs font-bold transition-all">
+          <button onClick={handleDisconnect} className="px-5 py-2.5 bg-[#B3261E]/10 hover:bg-[#B3261E]/20 text-[#B3261E] dark:bg-[#F2B8B5]/10 dark:text-[#F2B8B5] rounded-full text-xs font-bold transition-all shrink-0">
             Disconnect Drive
           </button>
         ) : (
-          <button onClick={handleConnect} className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl text-xs font-black shadow-lg shadow-blue-600/30 transition-all">
+          <button onClick={handleConnect} className="px-6 py-3 bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] rounded-full text-xs font-bold shadow-[0_1px_3px_1px_rgba(0,0,0,0.15)] transition-all shrink-0">
             Connect Google Drive
           </button>
         )}
@@ -191,24 +191,24 @@ export const GoogleDriveBackupSettings = () => {
 
       {isConnected && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between bg-white/5 p-5 rounded-2xl">
-            <div>
-              <p className="text-sm font-bold">Enable Automated Backups</p>
-              <p className="text-xs text-white/50">Automatically backup your XCloud vault to Google Drive.</p>
+          <div className="flex flex-wrap items-center justify-between gap-4 bg-[#F3EDF7] dark:bg-[#2B2930] p-5 rounded-[1rem] border border-[#EADDFF]/40 dark:border-[#4A4458]/40">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-[#1D1B20] dark:text-[#E6E0E9]">Enable Automated Backups</p>
+              <p className="text-xs text-[#49454F] dark:text-[#CAC4D0] font-medium mt-0.5">Automatically backup your XCloud vault to Google Drive.</p>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
               <input type="checkbox" checked={enabled} onChange={(e) => handleToggleEnabled(e.target.checked)} className="sr-only peer" />
-              <div className="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              <div className="w-11 h-6 bg-[#CAC4D0] dark:bg-[#49454F] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#6750A4]"></div>
             </label>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white/5 p-5 rounded-2xl space-y-3">
-              <label className="text-xs font-bold uppercase tracking-wider text-white/60">Backup Frequency</label>
+            <div className="bg-[#F3EDF7] dark:bg-[#2B2930] p-5 rounded-[1rem] border border-[#EADDFF]/40 dark:border-[#4A4458]/40 space-y-3">
+              <label className="text-xs font-bold uppercase tracking-wider text-[#6750A4] dark:text-[#D0BCFF]">Backup Frequency</label>
               <select
                 value={frequency}
                 onChange={(e: any) => handleChangeFrequency(e.target.value)}
-                className="w-full bg-[#111318] border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white outline-none"
+                className="w-full bg-[#FEF7FF] dark:bg-[#141218] border border-[#CAC4D0]/30 dark:border-[#49454F]/30 rounded-xl px-4 py-3 text-sm font-bold text-[#1D1B20] dark:text-[#E6E0E9] outline-none focus:ring-2 focus:ring-[#6750A4]"
               >
                 <option value="manual">Manual Only</option>
                 <option value="daily">Daily Backup</option>
@@ -216,29 +216,31 @@ export const GoogleDriveBackupSettings = () => {
               </select>
             </div>
 
-            <div className="bg-white/5 p-5 rounded-2xl space-y-3">
-              <label className="text-xs font-bold uppercase tracking-wider text-white/60">Encryption & Security</label>
+            <div className="bg-[#F3EDF7] dark:bg-[#2B2930] p-5 rounded-[1rem] border border-[#EADDFF]/40 dark:border-[#4A4458]/40 space-y-3">
+              <label className="text-xs font-bold uppercase tracking-wider text-[#6750A4] dark:text-[#D0BCFF]">Encryption & Security</label>
               <div className="flex items-center justify-between pt-2">
-                <span className="text-xs font-bold">Encrypt Backup Archive</span>
+                <span className="text-xs font-bold text-[#1D1B20] dark:text-[#E6E0E9]">Encrypt Backup Archive</span>
                 <input
                   type="checkbox"
                   checked={encryptBackup}
                   onChange={(e) => handleToggleEncryption(e.target.checked)}
-                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 bg-white/10 border-white/20"
+                  className="w-4 h-4 rounded text-[#6750A4] focus:ring-[#6750A4] bg-surface border-[#CAC4D0]"
                 />
               </div>
             </div>
           </div>
 
-          <div className="pt-4 flex justify-between items-center">
-            <div className="flex items-center gap-2 text-xs text-emerald-400 font-bold">
-              <ShieldCheck size={16} /> Target Root Folder: <code className="bg-white/10 px-2 py-1 rounded text-white font-mono">XCloud Vault Backups/</code>
+          <div className="pt-4 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-bold bg-[#F3EDF7] dark:bg-[#2B2930] px-4 py-3 rounded-[1rem] border border-[#EADDFF]/40 dark:border-[#4A4458]/40 min-w-0">
+              <ShieldCheck size={16} className="shrink-0" />
+              <span className="text-[#1D1B20] dark:text-[#E6E0E9]">Target Root Folder:</span>
+              <code className="bg-[#FEF7FF] dark:bg-[#141218] px-2.5 py-1 rounded-lg text-[#1D1B20] dark:text-[#E6E0E9] font-mono border border-[#CAC4D0]/30 truncate">XCloud Vault Backups/</code>
             </div>
 
             <button
               onClick={handleRunManualBackup}
               disabled={isBackingUp}
-              className="px-8 py-3.5 bg-primary hover:bg-primary/90 text-on-primary rounded-2xl text-xs font-black shadow-lg shadow-primary/20 transition-all flex items-center gap-2 disabled:opacity-50"
+              className="px-8 py-3.5 bg-[#6750A4] dark:bg-[#D0BCFF] text-white dark:text-[#381E72] hover:opacity-90 rounded-full text-xs font-bold shadow-[0_1px_3px_1px_rgba(0,0,0,0.15)] transition-all flex items-center gap-2 disabled:opacity-50 shrink-0"
             >
               {isBackingUp ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
               Run Backup Now
