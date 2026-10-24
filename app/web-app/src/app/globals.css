@@ -144,3 +144,34 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--md-sys-color-outline);
 }
+
+/* Liquid Design Glassmorphism & Blobs */
+.bg-liquid-glass {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+}
+.dark .bg-liquid-glass {
+  background: rgba(27, 27, 31, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.rounded-liquid {
+  border-radius: 2.5rem;
+}
+
+@keyframes liquidFloat {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-25px) scale(1.08); }
+}
+
+.animate-liquid-float {
+  animation: liquidFloat 12s ease-in-out infinite;
+}
+
+.animate-liquid-float-delayed {
+  animation: liquidFloat 16s ease-in-out infinite 4s;
+}

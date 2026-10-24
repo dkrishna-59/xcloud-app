@@ -82,9 +82,13 @@ export default function RootLayout({
                 <LoginGate>
                   <VaultProvider>
                     <PasscodeLockOverlay />
-                    <div className="flex min-h-screen overflow-hidden">
+                    <div className="flex min-h-screen overflow-hidden relative">
+                      {/* Fluid Background Ambient Glow Orbs */}
+                      <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-[#6750A4]/10 dark:bg-[#D0BCFF]/10 rounded-full blur-[120px] pointer-events-none animate-liquid-float" />
+                      <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-[#EADDFF]/20 dark:bg-[#4F378B]/15 rounded-full blur-[140px] pointer-events-none animate-liquid-float-delayed" />
+
                       <Sidebar />
-                      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+                      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10">
                         <Header />
                         <div className="flex-1 overflow-y-auto">
                           {children}
