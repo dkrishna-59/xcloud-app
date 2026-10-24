@@ -666,36 +666,36 @@ export default function SettingsPage() {
         {/* Preferences Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
            {/* Appearance Section */}
-           <div className="bg-surface-variant/10 border border-outline/5 rounded-[3rem] p-10 shadow-sm">
-              <div className="flex items-center gap-5 mb-10">
-                <div className="p-4 bg-tertiary-container text-on-tertiary-container rounded-3xl shadow-sm">
-                  {resolvedTheme === 'dark' ? <Moon size={28} /> : <Sun size={28} />}
+           <div className="bg-[#FEF7FF] dark:bg-[#141218] border border-[#EADDFF]/50 dark:border-[#4A4458]/50 rounded-[1.5rem] p-8 shadow-[0_1px_3px_1px_rgba(0,0,0,0.15)]">
+              <div className="flex items-center gap-4 mb-6 border-b border-[#CAC4D0]/30 dark:border-[#49454F]/30 pb-6">
+                <div className="p-3.5 bg-[#EADDFF] dark:bg-[#4F378B] text-[#21005D] dark:text-[#EADDFF] rounded-[1rem] shadow-sm shrink-0">
+                  {resolvedTheme === 'dark' ? <Moon size={24} /> : <Sun size={24} />}
                 </div>
-                <div>
-                  <h3 className="text-headline-small font-black text-on-surface">Visuals</h3>
-                  <p className="text-body-small text-on-surface-variant font-bold uppercase tracking-widest">Interface styling</p>
+                <div className="min-w-0">
+                  <h3 className="text-xl font-bold text-[#1D1B20] dark:text-[#E6E0E9] truncate">Visuals</h3>
+                  <p className="text-xs text-[#49454F] dark:text-[#CAC4D0] font-medium mt-0.5 truncate">Interface styling & theme</p>
                 </div>
               </div>
               <div className="space-y-6">
-                <div className="grid grid-cols-3 gap-2 p-1.5 bg-surface-variant/40 rounded-[1.5rem] border border-outline/5">
+                <div className="grid grid-cols-3 gap-2 p-1.5 bg-[#F3EDF7] dark:bg-[#2B2930] rounded-[1.5rem] border border-[#EADDFF]/40 dark:border-[#4A4458]/40">
                    {['light', 'dark', 'system'].map((t) => (
                      <button
                        key={t}
                        onClick={() => setTheme(t as any)}
                        className={cn(
-                         "py-3 px-4 rounded-xl text-xs font-black transition-all capitalize tracking-widest",
+                         "py-3 px-4 rounded-[1rem] text-xs font-bold transition-all capitalize tracking-wider",
                          theme === t
-                           ? "bg-surface text-primary shadow-lg scale-105"
-                           : "text-on-surface-variant hover:bg-surface/50"
+                           ? "bg-[#EADDFF] dark:bg-[#4F378B] text-[#21005D] dark:text-[#EADDFF] shadow-[0_1px_3px_1px_rgba(0,0,0,0.15)]"
+                           : "text-[#49454F] dark:text-[#CAC4D0] hover:bg-[#FEF7FF]/50 dark:hover:bg-[#141218]/50"
                        )}
                      >
                        {t}
                      </button>
                    ))}
                 </div>
-                <div className="p-5 bg-surface rounded-2xl border border-outline/5 flex items-center gap-4">
-                   {theme === 'system' ? <Globe className="text-primary" size={18} /> : theme === 'dark' ? <Moon className="text-primary" size={18} /> : <Sun className="text-primary" size={18} />}
-                   <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">
+                <div className="p-4 bg-[#F3EDF7] dark:bg-[#2B2930] rounded-[1rem] border border-[#EADDFF]/40 dark:border-[#4A4458]/40 flex items-center gap-4">
+                   {theme === 'system' ? <Globe className="text-[#6750A4] dark:text-[#D0BCFF]" size={18} /> : theme === 'dark' ? <Moon className="text-[#6750A4] dark:text-[#D0BCFF]" size={18} /> : <Sun className="text-[#6750A4] dark:text-[#D0BCFF]" size={18} />}
+                   <p className="text-[11px] font-bold text-[#49454F] dark:text-[#CAC4D0] uppercase tracking-wider">
                      {theme === 'system' ? "Linked to global system UI state" : `Locked to ${theme} interface mode`}
                    </p>
                 </div>
