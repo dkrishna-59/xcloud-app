@@ -18,6 +18,24 @@ const bufferToBase64Url = (buffer: ArrayBuffer): string => {
   return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 };
 
+const formatTimestamp = (ts: any): string => {
+  if (!ts) return 'Recently';
+  try {
+    if (typeof ts.toDate === 'function') {
+      return ts.toDate().toLocaleDateString();
+    }
+    if (ts.seconds) {
+      return new Date(ts.seconds * 1000).toLocaleDateString();
+    }
+    if (typeof ts === 'number') {
+      return new Date(ts).toLocaleDateString();
+    }
+  } catch (e) {
+    console.error(e);
+  }
+  return 'Recently';
+};
+
 export const SettingsPasskeySection = () => {
   const { user } = useAuth();
   const { showToast, hideToast } = useToast();
@@ -187,7 +205,7 @@ export const SettingsPasskeySection = () => {
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-[#1D1B20] dark:text-[#E6E0E9] truncate">{pk.deviceInfo || 'Platform Authenticator'}</p>
                       <p className="text-xs font-medium text-[#49454F] dark:text-[#CAC4D0] mt-1">
-                        ID: <span className="font-mono">{pk.credentialId.substring(0, 16)}...</span> • Added: {pk.createdAt?.toDate ? pk.createdAt.toDate().toLocaleDateString() : 'Recently'}
+                        ID: <span className="font-mono">{pk.credentialId.substring(0, 16)}...</span> • Added: {formatTimestamp(pk.createdAt)}
                       </p>
                     </div>
                   </div>
