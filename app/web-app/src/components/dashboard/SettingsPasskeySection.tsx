@@ -20,7 +20,7 @@ const bufferToBase64Url = (buffer: ArrayBuffer): string => {
 
 export const SettingsPasskeySection = () => {
   const { user } = useAuth();
-  const { showToast } = useToast();
+  const { showToast, hideToast } = useToast();
   const [passkeys, setPasskeys] = useState<any[]>([]);
   const [isRegistering, setIsRegistering] = useState(false);
   const [isSupported, setIsSupported] = useState(true);
